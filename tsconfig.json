@@ -4,6 +4,8 @@
     "paths": {
       "upsell-background-actions": ["./src/index"]
     },
+    "allowJs": true,
+    "checkJs": true,
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,
     "esModuleInterop": true,

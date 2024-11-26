@@ -185,5 +185,8 @@
     "type": "module-legacy",
     "languages": "kotlin-swift",
     "version": "0.44.2"
+  },
+  "dependencies": {
+    "eventemitter3": "^5.0.1"
   }
 }
