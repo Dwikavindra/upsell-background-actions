@@ -31,9 +31,9 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
   // Example method
   // See https://reactnative.dev/docs/native-modules-android
 
-  private val ACTION_STOP_SERVICE: String = "com.asterinet.react.bgactions.ACTION_STOP_SERVICE"
-  private val ACTION_START_ALARM_MANAGER: String = "com.asterinet.react.bgactions.ACTION_START_ALARM_MANAGER"
-  private val SHARED_PREFERENCES_KEY: String = "com.asterinet.react.bgactions.SHARED_PREFERENCES_KEY"
+  private val ACTION_STOP_SERVICE: String = "com.upsellbackgroundactions.ACTION_STOP_SERVICE"
+  private val ACTION_START_ALARM_MANAGER: String = "com.upsellbackgroundactions.ACTION_START_ALARM_MANAGER"
+  private val SHARED_PREFERENCES_KEY: String = "com.upsellbackgroundactions.SHARED_PREFERENCES_KEY"
   private  val SCHEDULE_EXACT_ALARM_REQUEST: Int = 1
   private var currentServiceIntent: Intent? = null
   private val alarmManager: AlarmManager? = null
