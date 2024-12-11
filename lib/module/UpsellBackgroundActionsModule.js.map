@@ -1,0 +1,1 @@
+{"version":3,"names":["NativeEventEmitter","NativeModules","UpsellBackgroundActions","nativeEventEmitter"],"sourceRoot":"../../src","sources":["UpsellBackgroundActionsModule.js"],"mappings":";;AAAA,SAASA,kBAAkB,EAAEC,aAAa,QAAQ,cAAc;AAEhE,MAAM;EAAEC;AAAwB,CAAC,GAAGD,aAAa;AAEjD,MAAME,kBAAkB,GAAG,IAAIH,kBAAkB,CAACE,uBAAuB,CAAC;AAE1E,SAASA,uBAAuB,EAAEC,kBAAkB","ignoreList":[]}

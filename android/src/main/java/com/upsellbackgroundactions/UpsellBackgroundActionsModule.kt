@@ -1,6 +1,8 @@
 package com.upsellbackgroundactions
 
+import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.ActivityManager
 import android.app.AlarmManager
 import android.app.AlarmManager.AlarmClockInfo
 import android.app.NotificationManager
@@ -12,6 +14,7 @@ import android.content.IntentFilter
 import android.os.Build
 import androidx.annotation.RequiresApi
 import com.facebook.react.bridge.BaseActivityEventListener
+import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContext
@@ -19,6 +22,7 @@ import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.ReadableMap
 import com.google.gson.Gson
+import javax.inject.Singleton
 
 
 class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
@@ -28,12 +32,6 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
     return NAME
   }
 
-  // Example method
-  // See https://reactnative.dev/docs/native-modules-android
-
-  private val ACTION_STOP_SERVICE: String = "com.upsellbackgroundactions.ACTION_STOP_SERVICE"
-  private val ACTION_START_ALARM_MANAGER: String = "com.upsellbackgroundactions.ACTION_START_ALARM_MANAGER"
-  private val SHARED_PREFERENCES_KEY: String = "com.upsellbackgroundactions.SHARED_PREFERENCES_KEY"
   private  val SCHEDULE_EXACT_ALARM_REQUEST: Int = 1
   private var currentServiceIntent: Intent? = null
   private val alarmManager: AlarmManager? = null
@@ -53,32 +51,49 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
     const val NAME = "UpsellBackgroundActions"
   }
 
+  @ReactMethod
+  fun setCallBack(callback: Callback){
+    StateSingleton.getInstance().setCallBack(callback)
+  }
+  @SuppressLint("ServiceCast")
+  @ReactMethod
+  fun listRunningServices(promise: Promise) {
+    try {
+      val activityManager = reactApplicationContext.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+      val runningServices = activityManager.getRunningServices(Int.MAX_VALUE)
+
+      val services = runningServices
+        .filter { it.service.packageName == reactApplicationContext.packageName }
+        .map { it.service.className }
+
+      promise.resolve(services)
+    } catch (e: Exception) {
+      promise.reject("ERROR", e)
+    }
+  }
+
   @Suppress("unused")
   @ReactMethod
   fun start(options: ReadableMap, triggerTime: Double, promise: Promise) {
     try {
       // Stop any other intent
       val convertedTriggerTime = triggerTime.toLong()
-      val stopIntent: Intent = Intent(ACTION_STOP_SERVICE)
+      val stopIntent: Intent = Intent(StateSingleton.getInstance().ACTION_STOP_SERVICE)
       reactApplicationContext.sendBroadcast(stopIntent) // stop the service regardless
       if (currentServiceIntent != null) reactApplicationContext.stopService(currentServiceIntent)
       // Create the service
-      currentServiceIntent = Intent(reactContext, RNBackgroundActionsTask::class.java)
+      currentServiceIntent = Intent(reactApplicationContext, RNBackgroundActionsTask::class.java)
       // Get the task info from the options
       val taskOptions = options.toHashMap() // convert options to HashMap
       val hashMapString = Gson().toJson(taskOptions)
       val optionSharedPreference =
-        reactApplicationContext.getSharedPreferences(SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
-      optionSharedPreference.edit().putString("optionHashMap", hashMapString)
-        .apply() // save to hashmap
-      optionSharedPreference.edit().putLong("triggerTime", convertedTriggerTime)
-        .apply() // save to hashmap
+        reactApplicationContext.getSharedPreferences(StateSingleton.getInstance().SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
+      optionSharedPreference.edit().putString("optionHashMap", hashMapString).apply() // save to hashmap
+      optionSharedPreference.edit().putLong("triggerTime", convertedTriggerTime).apply() // save to hashmap
       val bgOptions = BackgroundTaskOptions(reactApplicationContext, options)
-      currentServiceIntent.putExtras(bgOptions.extras!!)
-      // Start the task
+      currentServiceIntent!!.putExtras(bgOptions.extras!!)
       reactApplicationContext.startService(currentServiceIntent)
       optionSharedPreference.edit().putBoolean("isBackgroundServiceRunning", true).apply()
-      // start an alarm manager for n minutes later
       val alarmReciever: BroadcastReceiver = BackgroundAlarmReceiver()
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
         println("inside start function Build SDK is over Lollipop")
@@ -87,12 +102,12 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
           val alarmClockInfo =
             AlarmClockInfo(System.currentTimeMillis() + convertedTriggerTime, null)
           val startAlarmIntent = Intent(
-            reactContext,
+            reactApplicationContext,
             BackgroundAlarmReceiver::class.java
           )
-          startAlarmIntent.setAction(ACTION_START_ALARM_MANAGER)
+          startAlarmIntent.setAction(StateSingleton.getInstance().ACTION_START_ALARM_MANAGER)
           val pendingIntent = PendingIntent.getBroadcast(
-            this.reactContext,
+            reactApplicationContext,
             0,
             startAlarmIntent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
@@ -114,7 +129,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
   @ReactMethod
   fun checkScheduleExactAlarmPermission(promise: Promise) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-      promise.resolve(this.alarmManager.canScheduleExactAlarms())
+      promise.resolve(this.alarmManager?.canScheduleExactAlarms())
     }
     promise.resolve(false)
   }
@@ -161,12 +176,11 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
     try {
       if (currentServiceIntent != null) reactApplicationContext.stopService(currentServiceIntent)
       if (this.alarmPendingIntent != null && this.alarmManager != null) {
-        this.alarmManager.cancel(this.alarmPendingIntent)
+        this.alarmManager.cancel(this.alarmPendingIntent!!)
         promise.resolve(null)
       } else {
         throw java.lang.Exception(
-          ("""Alarm Manager not canceled
- Status of AlarmManager:${this.alarmManager}""").toString() + "Status of Pending Intent" + this.alarmPendingIntent
+          ("""Alarm Manager not canceled Status of AlarmManager:${this.alarmManager}""").toString() + "Status of Pending Intent" + this.alarmPendingIntent
         )
       }
     } catch (e: java.lang.Exception) {
@@ -195,7 +209,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
   @ReactMethod
   fun isBackgroundServiceRunning(promise: Promise) {
     val optionSharedPreference =
-      reactApplicationContext.getSharedPreferences(SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
+      reactApplicationContext.getSharedPreferences(StateSingleton.getInstance().SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
     val result = optionSharedPreference.getBoolean("isBackgroundServiceRunning", false)
     promise.resolve(result)
   }
@@ -203,30 +217,39 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
   @ReactMethod
   fun sendStopBroadcast(promise: Promise) {
     try {
-      val stopIntent: Intent = Intent(ACTION_STOP_SERVICE)
+      val stopIntent= Intent(StateSingleton.getInstance().ACTION_STOP_SERVICE)
       val optionSharedPreference =
-        reactApplicationContext.getSharedPreferences(SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
+        reactApplicationContext.getSharedPreferences(StateSingleton.getInstance().SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
       optionSharedPreference.edit().putBoolean("isBackgroundServiceRunning", false).apply()
       reactApplicationContext.sendBroadcast(stopIntent)
-      if (this.alarmPendingIntent != null && this.alarmManager != null) {
-        this.alarmManager.cancel(this.alarmPendingIntent)
-        promise.resolve(null)
-      } else {
-        throw Exception(
-          ("""Alarm Manager not canceled
- Status of AlarmManager:${this.alarmManager}""").toString() + "Status of Pending Intent" + this.alarmPendingIntent
-        )
-      }
       promise.resolve(null)
     } catch (e: Exception) {
       promise.reject(e)
+
     }
+  }
+
+  @ReactMethod
+  fun stopAlarm(promise:Promise){
+    try{
+    if(this.alarmPendingIntent!==null&& this.alarmManager!==null){
+      this.alarmManager.cancel(this.alarmPendingIntent!!)
+      promise.resolve(null)
+    }else{
+      throw Exception(
+        ("""Alarm Manager not canceled
+ Status of AlarmManager:${this.alarmManager}""").toString() + "Status of Pending Intent" + this.alarmPendingIntent
+      )
+    }
+      }catch (e:Exception){
+        promise.reject(e)
+      }
   }
 
   @ReactMethod
   fun getAlarmPermissionStatus(promise: Promise) {
     val optionSharedPreference =
-      reactApplicationContext.getSharedPreferences(SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
+      reactApplicationContext.getSharedPreferences(StateSingleton.getInstance().SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
     promise.resolve(optionSharedPreference.getBoolean("ALARM_PERMISSION_GRANTED", false))
   }
 

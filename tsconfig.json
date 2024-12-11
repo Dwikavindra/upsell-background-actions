@@ -2,7 +2,7 @@
   "compilerOptions": {
     "rootDir": ".",
     "paths": {
-      "upsell-background-actions": ["./src/index"]
+      "upsell-background-actions": ["./src/index.js"]
     },
     "allowJs": true,
     "checkJs": true,
