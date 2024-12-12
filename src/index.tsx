@@ -27,14 +27,6 @@ class BackgroundServer extends EventEmitter {
     this._isRunning = false;
     /** @private @type {BackgroundTaskOptions} */
     this._currentOptions;
-    this._addListeners();
-  }
-
-  /**
-   * @private
-   */
-  _addListeners() {
-    nativeEventEmitter.addListener('expiration', () => this.emit('expiration'));
   }
 
   /**
