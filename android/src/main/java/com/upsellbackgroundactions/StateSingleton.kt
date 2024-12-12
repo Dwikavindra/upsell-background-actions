@@ -8,6 +8,8 @@ class StateSingleton private constructor() {
   public val ACTION_STOP_SERVICE: String = "com.upsellbackgroundactions.ACTION_STOP_SERVICE"
   public val ACTION_START_ALARM_MANAGER: String = "com.upsellbackgroundactions.ACTION_START_ALARM_MANAGER"
   public val SHARED_PREFERENCES_KEY: String = "com.upsellbackgroundactions.SHARED_PREFERENCES_KEY"
+  public val CHANNEL_ID = "RN_BACKGROUND_ACTIONS_CHANNEL"
+  public val SERVICE_NOTIFICATION_ID: Int = 92901
   companion object {
 
     @Volatile private var instance: StateSingleton? = null // Volatile modifier is necessary

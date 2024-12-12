@@ -26,9 +26,9 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
     override fun onReceive(context: Context, intent: Intent) {
       println("This is intent action" + intent.action)
 
-      if (ACTION_STOP_SERVICE == intent.action) {
+      if (StateSingleton.getInstance().ACTION_STOP_SERVICE == intent.action) {
         val optionSharedPreference =
-          context.getSharedPreferences(SHARED_PREFERENCES_KEY, MODE_PRIVATE)
+          context.getSharedPreferences(StateSingleton.getInstance().SHARED_PREFERENCES_KEY, MODE_PRIVATE)
         this@RNBackgroundActionsTask.optionSharedPreference = optionSharedPreference
         stopForegroundService() // Stop the foreground service when the broadcast is received
       }
@@ -60,10 +60,10 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
     // Create the notification
     val notification = buildNotification(this, bgOptions)
 
-    startForeground(SERVICE_NOTIFICATION_ID, notification)
+    startForeground(StateSingleton.getInstance().SERVICE_NOTIFICATION_ID, notification)
 
     // Register the broadcast receiver to listen for the stop action
-    val filter = IntentFilter(ACTION_STOP_SERVICE)
+    val filter = IntentFilter(StateSingleton.getInstance().ACTION_STOP_SERVICE)
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
       registerReceiver(stopServiceReceiver, filter, RECEIVER_EXPORTED)
     } else {
@@ -82,8 +82,8 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
     if (this.optionSharedPreference != null) {
       println("Shared Preference is not null")
       optionSharedPreference!!.edit().putBoolean("isBackgroundServiceRunning", false).apply()
-    }
-    println("Passed statement stopForeground and stopSelf")
+  }
+  println("Passed statement stopForeground and stopSelf")
     unregisterReceiver(stopServiceReceiver) // Unregister the broadcast receiver
   }
 
@@ -101,7 +101,7 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
   private fun createNotificationChannel(taskTitle: String, taskDesc: String) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
       val importance = NotificationManager.IMPORTANCE_LOW
-      val channel = NotificationChannel(CHANNEL_ID, taskTitle, importance)
+      val channel = NotificationChannel(StateSingleton.getInstance().CHANNEL_ID, taskTitle, importance)
       channel.description = taskDesc
       val notificationManager = getSystemService(
         NotificationManager::class.java
@@ -111,11 +111,6 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
   }
 
   companion object {
-    const val SERVICE_NOTIFICATION_ID: Int = 92901
-    private const val SHARED_PREFERENCES_KEY =
-      "com.asterinet.react.bgactions.SHARED_PREFERENCES_KEY"
-    private const val CHANNEL_ID = "RN_BACKGROUND_ACTIONS_CHANNEL"
-    private const val ACTION_STOP_SERVICE = "com.asterinet.react.bgactions.ACTION_STOP_SERVICE"
 
     @SuppressLint("UnspecifiedImmutableFlag")
     fun buildNotification(context: Context, bgOptions: BackgroundTaskOptions): Notification {
@@ -146,7 +141,7 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
           PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
       }
-      val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+      val builder = NotificationCompat.Builder(context,StateSingleton.getInstance().CHANNEL_ID)
         .setContentTitle(taskTitle)
         .setContentText(taskDesc)
         .setSmallIcon(iconInt)

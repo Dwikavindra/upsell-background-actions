@@ -14,13 +14,14 @@ export default function App() {
   const veryIntensiveTask = async (taskDataArguments: any) => {
     // Example of an infinite loop task
     const { delay } = taskDataArguments;
+    console.log('Here in intensive task');
     await new Promise(async (resolve) => {
       for (
         let i = 0;
         await BackgroundService.isBackgroundServiceRunning();
         i++
       ) {
-        console.log(i);
+        console.log('Very Intensive Task Started', i);
         await sleep(delay);
       }
     });
@@ -41,15 +42,20 @@ export default function App() {
     },
   };
   const restart1 = async () => {
-    await BackgroundService.sendStopBroadcast();
-    await BackgroundService.stopAlarm();
-    await sleep(5000);
-    console.log(
-      'This is running services',
-      await BackgroundService.listRunningServices()
-    );
-    await BackgroundService.setCallBack(restart1);
-    await BackgroundService.start(veryIntensiveTask, options, 60000);
+    try {
+      console.log('Here in restart 1');
+      await BackgroundService.sendStopBroadcast();
+      await BackgroundService.stopAlarm();
+      await sleep(5000);
+      console.log(
+        'This is running services',
+        await BackgroundService.listRunningServices()
+      );
+      await BackgroundService.setCallBack(restart1);
+      await BackgroundService.start(veryIntensiveTask, options, 30000);
+    } catch (error) {
+      console.log('Restart1 error', error);
+    }
   };
 
   return (
@@ -61,6 +67,12 @@ export default function App() {
         }}
       />
       <Button
+        title="running services "
+        onPress={async () => {
+          console.log(await BackgroundService.listRunningServices());
+        }}
+      />
+      <Button
         title="stopAlarm"
         onPress={async () => {
           await BackgroundService.stopAlarm();
@@ -69,13 +81,24 @@ export default function App() {
       <Button
         title="Start Task "
         onPress={async () => {
-          await BackgroundService.start(veryIntensiveTask, options, 60000);
+          try {
+            console.log('Here');
+            await BackgroundService.start(veryIntensiveTask, options, 30000);
+            console.log('Here After');
+          } catch (error) {
+            console.log('This is error', error);
+          }
         }}
       />
       <Button
         title="Stop Task "
-        onPress={() => {
-          BackgroundService.sendStopBroadcast();
+        onPress={async () => {
+          try {
+            await BackgroundService.sendStopBroadcast();
+            console.log('Passed sendStopBroadcast');
+          } catch (error) {
+            console.log('Error from stop task', error);
+          }
         }}
       />
       <Text>Result: {result}</Text>

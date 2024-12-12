@@ -1,18 +1,17 @@
-import { Platform, AppRegistry } from 'react-native';
-import { UpsellBackgroundActions, nativeEventEmitter } from '.';
 import EventEmitter from 'eventemitter3';
+import {
+  NativeEventEmitter,
+  NativeModules,
+  Platform,
+  AppRegistry,
+} from 'react-native';
 
-/**
- * @typedef {{taskName: string,
- *            taskTitle: string,
- *            taskDesc: string,
- *            taskIcon: {name: string, type: string, package?: string},
- *            color?: string
- *            linkingURI?: string,
- *            progressBar?: {max: number, value: number, indeterminate?: boolean}
- *            }} BackgroundTaskOptions
- * @extends EventEmitter<'expiration',any>
- */
+const { UpsellBackgroundActions } = NativeModules;
+
+const nativeEventEmitter = new NativeEventEmitter(UpsellBackgroundActions);
+
+export { UpsellBackgroundActions, nativeEventEmitter };
+
 class BackgroundServer extends EventEmitter {
   constructor() {
     super();
