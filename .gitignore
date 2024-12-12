@@ -48,7 +48,8 @@ example/ios/Pods
 example/vendor/
 
 # node.js
-#
+
+
 node_modules/
 npm-debug.log
 yarn-debug.log
@@ -73,7 +74,7 @@ android/keystores/debug.keystore
 
 # Turborepo
 .turbo/
-
+lib/
 
 # React Native Codegen
 ios/generated

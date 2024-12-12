@@ -1,47 +1,14 @@
-export default BackgroundService;
-export type BackgroundTaskOptions = {
-    taskName: string;
-    taskTitle: string;
-    taskDesc: string;
-    taskIcon: {
-        name: string;
-        type: string;
-        package?: string;
-    };
-    color?: string;
-    linkingURI?: string;
-    progressBar?: {
-        max: number;
-        value: number;
-        indeterminate?: boolean;
-    };
-};
-declare const BackgroundService: BackgroundServer;
-/**
- * @typedef {{taskName: string,
- *            taskTitle: string,
- *            taskDesc: string,
- *            taskIcon: {name: string, type: string, package?: string},
- *            color?: string
- *            linkingURI?: string,
- *            progressBar?: {max: number, value: number, indeterminate?: boolean}
- *            }} BackgroundTaskOptions
- * @extends EventEmitter<'expiration',any>
- */
-declare class BackgroundServer extends EventEmitter<"expiration", any> {
+import EventEmitter from 'eventemitter3';
+import { NativeEventEmitter } from 'react-native';
+declare const UpsellBackgroundActions: any;
+declare const nativeEventEmitter: NativeEventEmitter;
+export { UpsellBackgroundActions, nativeEventEmitter };
+declare class BackgroundServer extends EventEmitter {
     constructor();
-    /** @private */
-    private _runnedTasks;
-    /** @private @type {(arg0?: any) => void} */
-    private _stopTask;
-    /** @private */
-    private _isRunning;
-    /** @private @type {BackgroundTaskOptions} */
-    private _currentOptions;
     /**
      * @private
      */
-    private _addListeners;
+    _addListeners(): void;
     /**
      * **ANDROID ONLY**
      *
@@ -56,22 +23,7 @@ declare class BackgroundServer extends EventEmitter<"expiration", any> {
      *          linkingURI?: string,
      *          progressBar?: {max: number, value: number, indeterminate?: boolean}}} taskData
      */
-    updateNotification(taskData: {
-        taskTitle?: string;
-        taskDesc?: string;
-        taskIcon?: {
-            name: string;
-            type: string;
-            package?: string;
-        };
-        color?: string;
-        linkingURI?: string;
-        progressBar?: {
-            max: number;
-            value: number;
-            indeterminate?: boolean;
-        };
-    }): Promise<void>;
+    updateNotification(taskData: any): Promise<void>;
     /**
      * Returns if the current background task is running.
      *
@@ -79,12 +31,12 @@ declare class BackgroundServer extends EventEmitter<"expiration", any> {
      *
      * It returns `false` if `stop()` has been called, **even if the task has not finished**.
      */
-    isRunning(): boolean;
+    isRunning(): any;
     /**
      * @argument {()=>{}} callback
      * @returns {Promise<void>}
      */
-    setCallBack(callback: () => {}): Promise<void>;
+    setCallBack(callback: any): Promise<void>;
     /**
      * @template T
      *
@@ -93,21 +45,27 @@ declare class BackgroundServer extends EventEmitter<"expiration", any> {
      * @param  {number} triggerTime when will the alarm fire to trigger the restart callback
      * @returns {Promise<void>}
      */
-    start<T>(task: (taskData?: T) => Promise<void>, options: BackgroundTaskOptions & {
-        parameters?: T;
-    }, triggerTime: number): Promise<void>;
+    start(task: any, options: any, triggerTime: any): Promise<void>;
     /**
      * @private
      * @template T
      * @param {(taskData?: T) => Promise<void>} task
      * @param {T} [parameters]
      */
-    private _generateTask;
+    _generateTask(task: any, parameters: any): () => Promise<void>;
     /**
      * @private
      * @param {BackgroundTaskOptions} options
      */
-    private _normalizeOptions;
+    _normalizeOptions(options: any): {
+        taskName: any;
+        taskTitle: any;
+        taskDesc: any;
+        taskIcon: any;
+        color: any;
+        linkingURI: any;
+        progressBar: any;
+    };
     /**
      * Stops the background task.
      *
@@ -121,5 +79,6 @@ declare class BackgroundServer extends EventEmitter<"expiration", any> {
     listRunningServices(): Promise<any>;
     stopAlarm(): Promise<any>;
 }
-import EventEmitter from 'eventemitter3';
+declare const BackgroundService: BackgroundServer;
+export default BackgroundService;
 //# sourceMappingURL=index.d.ts.map
