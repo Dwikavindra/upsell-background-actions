@@ -13,6 +13,10 @@ const nativeEventEmitter = new NativeEventEmitter(UpsellBackgroundActions);
 export { UpsellBackgroundActions, nativeEventEmitter };
 
 class BackgroundServer extends EventEmitter {
+  _runnedTasks: number;
+  _stopTask: any;
+  _isRunning: boolean;
+  _currentOptions: any;
   constructor() {
     super();
     /** @private */
@@ -47,7 +51,7 @@ class BackgroundServer extends EventEmitter {
    *          linkingURI?: string,
    *          progressBar?: {max: number, value: number, indeterminate?: boolean}}} taskData
    */
-  async updateNotification(taskData) {
+  async updateNotification(taskData: any) {
     if (Platform.OS !== 'android') return;
     if (!this.isRunning())
       throw new Error(
@@ -74,7 +78,7 @@ class BackgroundServer extends EventEmitter {
    * @argument {()=>{}} callback
    * @returns {Promise<void>}
    */
-  async setCallBack(callback) {
+  async setCallBack(callback: any) {
     UpsellBackgroundActions.setCallBack(callback);
   }
 
@@ -86,7 +90,7 @@ class BackgroundServer extends EventEmitter {
    * @param  {number} triggerTime when will the alarm fire to trigger the restart callback
    * @returns {Promise<void>}
    */
-  async start(task, options, triggerTime) {
+  async start(task: any, options: { parameters: any }, triggerTime: any) {
     console.log('Here passed register');
     this._runnedTasks++;
     this._currentOptions = this._normalizeOptions(options);
@@ -111,7 +115,8 @@ class BackgroundServer extends EventEmitter {
    * @param {(taskData?: T) => Promise<void>} task
    * @param {T} [parameters]
    */
-  _generateTask(task, parameters) {
+  _generateTask(task: (arg0: any) => Promise<any>, parameters: any) {
+    // eslint-disable-next-line consistent-this
     const self = this;
     return async () => {
       await new Promise((resolve) => {
@@ -125,7 +130,7 @@ class BackgroundServer extends EventEmitter {
    * @private
    * @param {BackgroundTaskOptions} options
    */
-  _normalizeOptions(options) {
+  _normalizeOptions(options: any) {
     return {
       taskName: options.taskName + this._runnedTasks,
       taskTitle: options.taskTitle,
