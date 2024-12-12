@@ -12,6 +12,8 @@ jsconfig.json
 # Xcode
 #
 build/
+lib/
+.lib/
 *.pbxuser
 !default.pbxuser
 *.mode1v3
@@ -74,7 +76,7 @@ android/keystores/debug.keystore
 
 # Turborepo
 .turbo/
-lib/
+
 
 # React Native Codegen
 ios/generated
