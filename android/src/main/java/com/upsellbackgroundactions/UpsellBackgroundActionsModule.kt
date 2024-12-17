@@ -221,8 +221,6 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
   fun sendStopBroadcast(promise: Promise) {
     try {
       val stopIntent= Intent(StateSingleton.getInstance().ACTION_STOP_SERVICE)
-      val optionSharedPreference = reactApplicationContext.getSharedPreferences(StateSingleton.getInstance().SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
-      optionSharedPreference.edit().putBoolean("isBackgroundServiceRunning", false).apply()
       reactApplicationContext.sendBroadcast(stopIntent)
       promise.resolve(null)
     } catch (e: Exception) {

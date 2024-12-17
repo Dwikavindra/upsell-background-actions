@@ -76,26 +76,27 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
   override fun onDestroy() {
     super.onDestroy()
 
-
-    stopForeground(true)
-    stopSelf()
-    if (this.optionSharedPreference != null) {
+  if (this.optionSharedPreference != null) {
       println("Shared Preference is not null")
       optionSharedPreference!!.edit().putBoolean("isBackgroundServiceRunning", false).apply()
   }
+    stopForeground(true)
+    stopSelf()
+  
   println("Passed statement stopForeground and stopSelf")
     unregisterReceiver(stopServiceReceiver) // Unregister the broadcast receiver
   }
 
   private fun stopForegroundService() {
+     if (this.optionSharedPreference != null) {
+      println("Shared Preference is not null")
+      optionSharedPreference!!.edit().putBoolean("isBackgroundServiceRunning", false).apply()
+    }
     println("On Stop Foreground Service before stopForeground")
     stopForeground(true) // Stop the foreground service and remove the notification
     stopSelf() // Stop the service itself
     println("Passed stopSelf")
-    if (this.optionSharedPreference != null) {
-      println("Shared Preference is not null")
-      optionSharedPreference!!.edit().putBoolean("isBackgroundServiceRunning", false).apply()
-    }
+   
   }
 
   private fun createNotificationChannel(taskTitle: String, taskDesc: String) {
