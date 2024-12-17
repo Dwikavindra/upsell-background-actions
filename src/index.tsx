@@ -72,7 +72,6 @@ class UpsellBackgroundService {
    * @returns {Promise<void>}
    */
   async start(task: any, options: { parameters: any }, triggerTime: any) {
-    console.log('Here passed register');
     this._runnedTasks++;
     this._currentOptions = this._normalizeOptions(options);
     const finalTask = this._generateTask(task, options.parameters);
