@@ -15,20 +15,35 @@ export default function App() {
     // Example of an infinite loop task
     const { delay } = taskDataArguments;
     console.log('Here in intensive task');
+
     await BackgroundService.lock();
-    await BackgroundService.setAlarm(30000);
+    await BackgroundService.setAlarm(10000);
     await new Promise(async (resolve) => {
       for (
         let i = 0;
         await BackgroundService.isBackgroundServiceRunning();
         i++
       ) {
+        console.log(
+          'This is await isBackgroundServiceRunning',
+          await BackgroundService.isBackgroundServiceRunning()
+        );
         console.log('Very Intensive Task Started', i);
         await sleep(delay);
       }
       console.log('IsBackgroundServiceRunningis false');
       try {
+        console.log(
+          'This is is list await ',
+          await BackgroundService.listRunningServices()
+        );
+        while ((await BackgroundService.listRunningServices()) !== '[]') {
+          console.log('Awaiting for running Services to be 0');
+          await BackgroundService.sendStopBroadcast();
+          await sleep(1000);
+        }
         await BackgroundService.unlock();
+        console.log('Passed lock');
       } catch (error) {
         console.log(error);
       }
@@ -49,32 +64,25 @@ export default function App() {
       delay: 1000,
     },
   };
-  const restart1 = async () => {
-    try {
-      console.log('Here in restart 1');
-      await BackgroundService.setIsBackgroundServiceRunning(false);
-      await BackgroundService.sendStopBroadcast();
-      await BackgroundService.stopAlarm();
-      await sleep(5000);
-      console.log(
-        'This is running services',
-        await BackgroundService.listRunningServices()
-      );
-      await BackgroundService.setCallBack(restart1);
-      await BackgroundService.start(veryIntensiveTask, options, 30000);
-    } catch (error) {
-      console.log('Restart1 error', error);
-    }
-  };
+  // const restart1 = async () => {
+  //   try {
+  //     console.log('Here in restart 1');
+  //     await BackgroundService.setIsBackgroundServiceRunning(false);
+  //     await BackgroundService.sendStopBroadcast();
+  //     await BackgroundService.stopAlarm();
+  //     await sleep(5000);
+  //     console.log(
+  //       'This is running services',
+  //       await BackgroundService.listRunningServices()
+  //     );
+  //     await BackgroundService.start(veryIntensiveTask, options, 30000);
+  //   } catch (error) {
+  //     console.log('Restart1 error', error);
+  //   }
+  // };
 
   return (
     <View style={styles.container}>
-      <Button
-        title="Set Callback "
-        onPress={async () => {
-          await BackgroundService.setCallBack(restart1);
-        }}
-      />
       <Button
         title="running services "
         onPress={async () => {
@@ -115,8 +123,14 @@ export default function App() {
         title="Stop Task "
         onPress={async () => {
           try {
-            await BackgroundService.sendStopBroadcast();
-            await BackgroundService.unlock();
+            await BackgroundService.setIsBackgroundServiceRunning(false);
+
+            while ((await BackgroundService.listRunningServices()) !== '[]') {
+              await BackgroundService.sendStopBroadcast();
+              await BackgroundService.setIsBackgroundServiceRunning(false);
+            }
+
+            await BackgroundService.stopAlarm();
             console.log('Passed sendStopBroadcast');
           } catch (error) {
             console.log('Error from stop task', error);
