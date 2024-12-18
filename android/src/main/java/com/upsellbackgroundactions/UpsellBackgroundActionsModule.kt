@@ -12,6 +12,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.core.content.edit
 import com.facebook.react.bridge.BaseActivityEventListener
 import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.Promise
@@ -80,8 +81,11 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
   fun start(options: ReadableMap, triggerTime: Double, promise: Promise) {
     try {
       // Stop any other intent
+      val optionSharedPreference =
+        reactApplicationContext.getSharedPreferences(StateSingleton.getInstance().SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
       val convertedTriggerTime = triggerTime.toLong()
       val stopIntent: Intent = Intent(StateSingleton.getInstance().ACTION_STOP_SERVICE)
+      optionSharedPreference.edit().putBoolean("isBackgroundServiceRunning",false).apply()
       reactApplicationContext.sendBroadcast(stopIntent) // stop the service regardless
       if (currentServiceIntent != null) reactApplicationContext.stopService(currentServiceIntent)
       // Create the service
@@ -89,10 +93,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
       // Get the task info from the options
       val taskOptions = options.toHashMap() // convert options to HashMap
       val hashMapString = Gson().toJson(taskOptions)
-      val optionSharedPreference =
-        reactApplicationContext.getSharedPreferences(StateSingleton.getInstance().SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
-      optionSharedPreference.edit().putString("optionHashMap", hashMapString).apply() // save to hashmap
-      optionSharedPreference.edit().putLong("triggerTime", convertedTriggerTime).apply() // save to hashmap
+
       val bgOptions = BackgroundTaskOptions(reactApplicationContext, options)
       currentServiceIntent!!.putExtras(bgOptions.extras!!)
       reactApplicationContext.startService(currentServiceIntent)
