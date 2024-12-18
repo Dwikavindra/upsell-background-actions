@@ -85,46 +85,19 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
 
   @Suppress("unused")
   @ReactMethod
-  fun start(options: ReadableMap, triggerTime: Double, promise: Promise) {
+  fun start(options: ReadableMap, promise: Promise) {
 
     CoroutineScope(Dispatchers.Main).launch{
       try {
         // Stop any other inten
         val optionSharedPreference =
           reactApplicationContext.getSharedPreferences(StateSingleton.getInstance().SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
-        val convertedTriggerTime = triggerTime.toLong()
+
         val bgOptions = BackgroundTaskOptions(reactApplicationContext, options)
         currentServiceIntent = Intent(reactApplicationContext, RNBackgroundActionsTask::class.java)
         currentServiceIntent!!.putExtras(bgOptions.extras!!)
         reactApplicationContext.startService(currentServiceIntent)
         optionSharedPreference.edit().putBoolean("isBackgroundServiceRunning", true).apply()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-          println("inside start function Build SDK is over Lollipop")
-          if (alarmManager != null) {
-            println("inside start function alarm manager is not null")
-            val alarmClockInfo =
-              AlarmClockInfo(System.currentTimeMillis() + convertedTriggerTime, null)
-            val startAlarmIntent = Intent(
-              reactApplicationContext,
-              BackgroundAlarmReceiver::class.java
-            )
-            startAlarmIntent.setAction(StateSingleton.getInstance().ACTION_START_ALARM_MANAGER)
-            val pendingIntent = PendingIntent.getBroadcast(
-              reactApplicationContext,
-              0,
-              startAlarmIntent,
-              PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-            )
-            this@UpsellBackgroundActionsModule.alarmPendingIntent = pendingIntent
-            this@UpsellBackgroundActionsModule.alarmManager!!.setAlarmClock(alarmClockInfo, pendingIntent)
-            println("inside start function Passed set Alarm Clock")
-          } else {
-            throw java.lang.Exception("Alarm manager is null")
-          }
-          promise.resolve(null)
-        } else {
-          throw java.lang.Exception("OS version needs to be larger than android lollipop or android 21")
-        }
       } catch (e: java.lang.Exception) {
         promise.reject(e)
       }
@@ -246,6 +219,46 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
 
   @Suppress("unused")
   @ReactMethod
+  fun setAlarm(triggerTime: Double,promise: Promise) {
+    try {
+      val convertedTriggerTime = triggerTime.toLong()
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        println("inside start function Build SDK is over Lollipop")
+        if (alarmManager != null) {
+          println("inside start function alarm manager is not null")
+          val alarmClockInfo =
+            AlarmClockInfo(System.currentTimeMillis() + convertedTriggerTime, null)
+          val startAlarmIntent = Intent(
+            reactApplicationContext,
+            BackgroundAlarmReceiver::class.java
+          )
+          startAlarmIntent.setAction(StateSingleton.getInstance().ACTION_START_ALARM_MANAGER)
+          val pendingIntent = PendingIntent.getBroadcast(
+            reactApplicationContext,
+            0,
+            startAlarmIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+          )
+          this@UpsellBackgroundActionsModule.alarmPendingIntent = pendingIntent
+          this@UpsellBackgroundActionsModule.alarmManager!!.setAlarmClock(alarmClockInfo, pendingIntent)
+          println("inside start function Passed set Alarm Clock")
+        } else {
+          throw java.lang.Exception("Alarm manager is null")
+        }
+        promise.resolve(null)
+      } else {
+        throw java.lang.Exception("OS version needs to be larger than android lollipop or android 21")
+      }
+      promise.resolve(null)
+    } catch (e: Exception) {
+      promise.reject(e)
+
+    }
+  }
+
+
+  @Suppress("unused")
+  @ReactMethod
   fun lock(promise: Promise) {
     CoroutineScope(Dispatchers.Main).launch {
       try {
@@ -265,7 +278,6 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
     CoroutineScope(Dispatchers.Main).launch {
       try {
         this@UpsellBackgroundActionsModule.semaphore.release()
-        promise.resolve(null)
       } catch (e: Exception) {
         promise.reject(e)
 
