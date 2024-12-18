@@ -18,20 +18,6 @@ class UpsellBackgroundService {
     this._currentOptions;
   }
 
-  /**
-   * **ANDROID ONLY**
-   *
-   * Updates the task notification.
-   *
-   * *On iOS this method will return immediately*
-   *
-   * @param {{taskTitle?: string,
-   *          taskDesc?: string,
-   *          taskIcon?: {name: string, type: string, package?: string},
-   *          color?: string,
-   *          linkingURI?: string,
-   *          progressBar?: {max: number, value: number, indeterminate?: boolean}}} taskData
-   */
   async updateNotification(taskData: any) {
     if (Platform.OS !== 'android') return;
     if (!this.isRunning())
@@ -63,14 +49,6 @@ class UpsellBackgroundService {
     UpsellBackgroundActions.setCallBack(callback);
   }
 
-  /**
-   * @template T
-   *
-   * @param {(taskData?: T) => Promise<void>} task
-   * @param {BackgroundTaskOptions & {parameters?: T}} options
-   * @param  {number} triggerTime when will the alarm fire to trigger the restart callback
-   * @returns {Promise<void>}
-   */
   async start(task: any, options: { parameters: any }, triggerTime: any) {
     this._runnedTasks++;
     this._currentOptions = this._normalizeOptions(options);
@@ -106,10 +84,6 @@ class UpsellBackgroundService {
     };
   }
 
-  /**
-   * @private
-   * @param {BackgroundTaskOptions} options
-   */
   _normalizeOptions(options: any) {
     return {
       taskName: options.taskName + this._runnedTasks,
@@ -122,11 +96,6 @@ class UpsellBackgroundService {
     };
   }
 
-  /**
-   * Stops the background task.
-   *
-   * @returns {Promise<void>}
-   */
   async stop() {
     this._stopTask();
     await UpsellBackgroundActions.stop();

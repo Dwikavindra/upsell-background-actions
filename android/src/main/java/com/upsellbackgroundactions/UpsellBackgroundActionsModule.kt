@@ -85,6 +85,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
         reactApplicationContext.getSharedPreferences(StateSingleton.getInstance().SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
       val convertedTriggerTime = triggerTime.toLong()
       val bgOptions = BackgroundTaskOptions(reactApplicationContext, options)
+      currentServiceIntent = Intent(reactApplicationContext, RNBackgroundActionsTask::class.java)
       currentServiceIntent!!.putExtras(bgOptions.extras!!)
       reactApplicationContext.startService(currentServiceIntent)
       optionSharedPreference.edit().putBoolean("isBackgroundServiceRunning", true).apply()

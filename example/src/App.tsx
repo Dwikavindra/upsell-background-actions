@@ -91,6 +91,18 @@ export default function App() {
         }}
       />
       <Button
+        title="SetIsBackgroundServiceRunning False"
+        onPress={async () => {
+          try {
+            console.log('Here');
+            await BackgroundService.setIsBackgroundServiceRunning(false);
+            console.log('Here After');
+          } catch (error) {
+            console.log('This is error', error);
+          }
+        }}
+      />
+      <Button
         title="Stop Task "
         onPress={async () => {
           try {
