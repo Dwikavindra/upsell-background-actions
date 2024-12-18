@@ -209,10 +209,14 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
   @Suppress("unused")
   @ReactMethod
   fun setIsBackgroundServiceRunning(value:Boolean,promise: Promise) {
-    val optionSharedPreference =
-      reactApplicationContext.getSharedPreferences(StateSingleton.getInstance().SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
-    val result = optionSharedPreference.edit().putBoolean("isBackgroundServiceRunning",value).apply()
-    promise.resolve(result)
+    try{
+      val optionSharedPreference =
+        reactApplicationContext.getSharedPreferences(StateSingleton.getInstance().SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
+      val result = optionSharedPreference.edit().putBoolean("isBackgroundServiceRunning",value).apply()
+      promise.resolve(true)
+    }catch(e:Exception){
+      promise.reject("Error",e)
+    }
   }
   @Suppress("unused")
   @ReactMethod
