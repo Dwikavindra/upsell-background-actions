@@ -21,6 +21,12 @@ import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.ReadableMap
 import com.google.gson.Gson
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.Semaphore
+import java.util.concurrent.locks.ReentrantLock
 
 
 class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
@@ -35,6 +41,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
   private var alarmManager: AlarmManager? = null
   private var alarmPendingIntent: PendingIntent? = null
   private var mExactAlarmPromise: Promise? = null
+  private val semaphore=Semaphore(1)
   init {
     val mActivityEventListener = object : BaseActivityEventListener() {
       override fun onActivityResult(activity: Activity, requestCode: Int, resultCode: Int, intent: Intent?) {
@@ -79,46 +86,51 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
   @Suppress("unused")
   @ReactMethod
   fun start(options: ReadableMap, triggerTime: Double, promise: Promise) {
-    try {
-      // Stop any other intent
-      val optionSharedPreference =
-        reactApplicationContext.getSharedPreferences(StateSingleton.getInstance().SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
-      val convertedTriggerTime = triggerTime.toLong()
-      val bgOptions = BackgroundTaskOptions(reactApplicationContext, options)
-      currentServiceIntent = Intent(reactApplicationContext, RNBackgroundActionsTask::class.java)
-      currentServiceIntent!!.putExtras(bgOptions.extras!!)
-      reactApplicationContext.startService(currentServiceIntent)
-      optionSharedPreference.edit().putBoolean("isBackgroundServiceRunning", true).apply()
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-        println("inside start function Build SDK is over Lollipop")
-        if (alarmManager != null) {
-          println("inside start function alarm manager is not null")
-          val alarmClockInfo =
-            AlarmClockInfo(System.currentTimeMillis() + convertedTriggerTime, null)
-          val startAlarmIntent = Intent(
-            reactApplicationContext,
-            BackgroundAlarmReceiver::class.java
-          )
-          startAlarmIntent.setAction(StateSingleton.getInstance().ACTION_START_ALARM_MANAGER)
-          val pendingIntent = PendingIntent.getBroadcast(
-            reactApplicationContext,
-            0,
-            startAlarmIntent,
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-          )
-          this.alarmPendingIntent = pendingIntent
-          this.alarmManager!!.setAlarmClock(alarmClockInfo, pendingIntent)
-          println("inside start function Passed set Alarm Clock")
+
+    CoroutineScope(Dispatchers.Main).launch{
+      try {
+        // Stop any other inten
+        val optionSharedPreference =
+          reactApplicationContext.getSharedPreferences(StateSingleton.getInstance().SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
+        val convertedTriggerTime = triggerTime.toLong()
+        val bgOptions = BackgroundTaskOptions(reactApplicationContext, options)
+        currentServiceIntent = Intent(reactApplicationContext, RNBackgroundActionsTask::class.java)
+        currentServiceIntent!!.putExtras(bgOptions.extras!!)
+        reactApplicationContext.startService(currentServiceIntent)
+        optionSharedPreference.edit().putBoolean("isBackgroundServiceRunning", true).apply()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+          println("inside start function Build SDK is over Lollipop")
+          if (alarmManager != null) {
+            println("inside start function alarm manager is not null")
+            val alarmClockInfo =
+              AlarmClockInfo(System.currentTimeMillis() + convertedTriggerTime, null)
+            val startAlarmIntent = Intent(
+              reactApplicationContext,
+              BackgroundAlarmReceiver::class.java
+            )
+            startAlarmIntent.setAction(StateSingleton.getInstance().ACTION_START_ALARM_MANAGER)
+            val pendingIntent = PendingIntent.getBroadcast(
+              reactApplicationContext,
+              0,
+              startAlarmIntent,
+              PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
+            this@UpsellBackgroundActionsModule.alarmPendingIntent = pendingIntent
+            this@UpsellBackgroundActionsModule.alarmManager!!.setAlarmClock(alarmClockInfo, pendingIntent)
+            println("inside start function Passed set Alarm Clock")
+          } else {
+            throw java.lang.Exception("Alarm manager is null")
+          }
+          promise.resolve(null)
         } else {
-          throw java.lang.Exception("Alarm manager is null")
+          throw java.lang.Exception("OS version needs to be larger than android lollipop or android 21")
         }
-        promise.resolve(null)
-      } else {
-        throw java.lang.Exception("OS version needs to be larger than android lollipop or android 21")
+      } catch (e: java.lang.Exception) {
+        promise.reject(e)
       }
-    } catch (e: java.lang.Exception) {
-      promise.reject(e)
     }
+
+
   }
   @ReactMethod
   fun checkScheduleExactAlarmPermission(promise: Promise) {
@@ -231,6 +243,37 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
 
     }
   }
+
+  @Suppress("unused")
+  @ReactMethod
+  fun lock(promise: Promise) {
+    CoroutineScope(Dispatchers.Main).launch {
+      try {
+        this@UpsellBackgroundActionsModule.semaphore.acquire()
+        promise.resolve(null)
+      } catch (e: Exception) {
+        promise.reject(e)
+
+      }
+    }
+
+  }
+
+  @Suppress("unused")
+  @ReactMethod
+  fun unlock(promise: Promise) {
+    CoroutineScope(Dispatchers.Main).launch {
+      try {
+        this@UpsellBackgroundActionsModule.semaphore.release()
+        promise.resolve(null)
+      } catch (e: Exception) {
+        promise.reject(e)
+
+      }
+    }
+  }
+
+
 
   @ReactMethod
   fun stopAlarm(promise:Promise){

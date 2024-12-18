@@ -124,6 +124,12 @@ class UpsellBackgroundService {
   async setIsBackgroundServiceRunning(value: boolean) {
     return await UpsellBackgroundActions.setIsBackgroundServiceRunning(value);
   }
+  async lock() {
+    return await UpsellBackgroundActions.lock();
+  }
+  async unlock() {
+    return await UpsellBackgroundActions.unlock();
+  }
 }
 const BackgroundService = new UpsellBackgroundService();
 export default BackgroundService;
