@@ -152,6 +152,9 @@ class UpsellBackgroundService {
   async stopAlarm() {
     return await UpsellBackgroundActions.stopAlarm();
   }
+  async setIsBackgroundServiceRunning(value: boolean) {
+    return await UpsellBackgroundActions.setIsBackgroundServiceRunning(value);
+  }
 }
 const BackgroundService = new UpsellBackgroundService();
 export default BackgroundService;

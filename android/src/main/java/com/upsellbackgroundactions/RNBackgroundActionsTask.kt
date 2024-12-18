@@ -9,7 +9,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.content.SharedPreferences
 import android.net.Uri
 import android.os.Build
 import androidx.core.app.NotificationCompat
@@ -20,16 +19,12 @@ import kotlin.math.floor
 
 
 class RNBackgroundActionsTask : HeadlessJsTaskService() {
-  private var optionSharedPreference: SharedPreferences? = null
 
   private val stopServiceReceiver: BroadcastReceiver = object : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
       println("This is intent action" + intent.action)
 
       if (StateSingleton.getInstance().ACTION_STOP_SERVICE == intent.action) {
-        val optionSharedPreference =
-          context.getSharedPreferences(StateSingleton.getInstance().SHARED_PREFERENCES_KEY, MODE_PRIVATE)
-        this@RNBackgroundActionsTask.optionSharedPreference = optionSharedPreference
         stopForegroundService() // Stop the foreground service when the broadcast is received
       }
     }
@@ -76,27 +71,19 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
   override fun onDestroy() {
     super.onDestroy()
 
-  if (this.optionSharedPreference != null) {
-      println("Shared Preference is not null")
-      optionSharedPreference!!.edit().putBoolean("isBackgroundServiceRunning", false).apply()
-  }
     stopForeground(true)
     stopSelf()
-  
+
   println("Passed statement stopForeground and stopSelf")
     unregisterReceiver(stopServiceReceiver) // Unregister the broadcast receiver
   }
 
   private fun stopForegroundService() {
-     if (this.optionSharedPreference != null) {
-      println("Shared Preference is not null")
-      optionSharedPreference!!.edit().putBoolean("isBackgroundServiceRunning", false).apply()
-    }
     println("On Stop Foreground Service before stopForeground")
     stopForeground(true) // Stop the foreground service and remove the notification
     stopSelf() // Stop the service itself
     println("Passed stopSelf")
-   
+
   }
 
   private fun createNotificationChannel(taskTitle: String, taskDesc: String) {

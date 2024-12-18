@@ -84,21 +84,10 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
       val optionSharedPreference =
         reactApplicationContext.getSharedPreferences(StateSingleton.getInstance().SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
       val convertedTriggerTime = triggerTime.toLong()
-      val stopIntent: Intent = Intent(StateSingleton.getInstance().ACTION_STOP_SERVICE)
-      optionSharedPreference.edit().putBoolean("isBackgroundServiceRunning",false).apply()
-      reactApplicationContext.sendBroadcast(stopIntent) // stop the service regardless
-      if (currentServiceIntent != null) reactApplicationContext.stopService(currentServiceIntent)
-      // Create the service
-      currentServiceIntent = Intent(reactApplicationContext, RNBackgroundActionsTask::class.java)
-      // Get the task info from the options
-      val taskOptions = options.toHashMap() // convert options to HashMap
-      val hashMapString = Gson().toJson(taskOptions)
-
       val bgOptions = BackgroundTaskOptions(reactApplicationContext, options)
       currentServiceIntent!!.putExtras(bgOptions.extras!!)
       reactApplicationContext.startService(currentServiceIntent)
       optionSharedPreference.edit().putBoolean("isBackgroundServiceRunning", true).apply()
-      val alarmReciever: BroadcastReceiver = BackgroundAlarmReceiver()
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
         println("inside start function Build SDK is over Lollipop")
         if (alarmManager != null) {
@@ -215,6 +204,14 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
     val optionSharedPreference =
       reactApplicationContext.getSharedPreferences(StateSingleton.getInstance().SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
     val result = optionSharedPreference.getBoolean("isBackgroundServiceRunning", false)
+    promise.resolve(result)
+  }
+  @Suppress("unused")
+  @ReactMethod
+  fun setIsBackgroundServiceRunning(value:Boolean,promise: Promise) {
+    val optionSharedPreference =
+      reactApplicationContext.getSharedPreferences(StateSingleton.getInstance().SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
+    val result = optionSharedPreference.edit().putBoolean("isBackgroundServiceRunning",value).apply()
     promise.resolve(result)
   }
   @Suppress("unused")
