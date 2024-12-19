@@ -13,7 +13,7 @@ import java.lang.Thread.State
 
 class BackgroundAlarmReceiver : BroadcastReceiver() {
   override fun onReceive(context: Context, intent: Intent) {
-    Thread {
+    CoroutineScope(Dispatchers.Default).launch {
       println("This is intent action" + intent.action)
       if (StateSingleton.getInstance().ACTION_START_ALARM_MANAGER == intent.action) {
         try {
@@ -51,9 +51,7 @@ class BackgroundAlarmReceiver : BroadcastReceiver() {
           println("Exception from background Alarm Receiver$e")
         }
 
-        //            currentServiceIntent.putExtras(bgOptions.getExtras());
-//            context.startService(currentServiceIntent);
       }
-    }.start()
+    }
   }
 }

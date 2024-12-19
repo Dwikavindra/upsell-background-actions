@@ -277,6 +277,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
     CoroutineScope(Dispatchers.Main).launch {
       try {
         this@UpsellBackgroundActionsModule.semaphore.release()
+        promise.resolve(null)
       } catch (e: Exception) {
         promise.reject(e)
 
@@ -285,22 +286,10 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
   }
 
 
-
+  @Suppress("unused")
   @ReactMethod
   fun stopAlarm(promise:Promise){
-    try{
-    if(this.alarmPendingIntent!==null&& this.alarmManager!==null){
-      this.alarmManager!!.cancel(this.alarmPendingIntent!!)
-      promise.resolve(null)
-    }else{
-      throw Exception(
-        ("""Alarm Manager not canceled
- Status of AlarmManager:${this.alarmManager}""").toString() + "Status of Pending Intent" + this.alarmPendingIntent
-      )
-    }
-      }catch (e:Exception){
-        promise.reject(e)
-      }
+      StateSingleton.getInstance().stopAlarm(promise)
   }
 
   @ReactMethod

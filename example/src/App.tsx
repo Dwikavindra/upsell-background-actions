@@ -17,7 +17,7 @@ export default function App() {
     console.log('Here in intensive task');
 
     await BackgroundService.lock();
-    await BackgroundService.setAlarm(10000);
+    await BackgroundService.setAlarm(20000);
     await new Promise(async (resolve) => {
       for (
         let i = 0;
@@ -42,8 +42,9 @@ export default function App() {
           await BackgroundService.sendStopBroadcast();
           await sleep(1000);
         }
+        console.log('Passed while loop');
         await BackgroundService.unlock();
-        console.log('Passed lock');
+        console.log('Passed unlock');
       } catch (error) {
         console.log(error);
       }
@@ -100,6 +101,7 @@ export default function App() {
         onPress={async () => {
           try {
             console.log('Here');
+
             await BackgroundService.start(veryIntensiveTask, options);
             console.log('Here After');
           } catch (error) {
@@ -123,14 +125,15 @@ export default function App() {
         title="Stop Task "
         onPress={async () => {
           try {
+            console.log('Here in stop task');
+            await BackgroundService.stopAlarm();
             await BackgroundService.setIsBackgroundServiceRunning(false);
-
+            console.log('Here after setIs in StopTask');
             while ((await BackgroundService.listRunningServices()) !== '[]') {
+              console.log('Here in stop Task loop');
               await BackgroundService.sendStopBroadcast();
-              await BackgroundService.setIsBackgroundServiceRunning(false);
             }
 
-            await BackgroundService.stopAlarm();
             console.log('Passed sendStopBroadcast');
           } catch (error) {
             console.log('Error from stop task', error);

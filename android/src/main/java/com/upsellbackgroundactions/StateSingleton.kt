@@ -58,7 +58,10 @@ class StateSingleton private constructor() {
     return this.bgOptions!!
   }
   fun setPendingIntent(pendingIntent: PendingIntent){
-    this.pendingIntent=pendingIntent
+    synchronized(this){
+      this.pendingIntent=pendingIntent
+    }
+
   }
   private fun getAlarmManager():AlarmManager{
     val alarmManager=this.reactContext!!.getSystemService(AlarmManager::class.java)
@@ -94,10 +97,12 @@ class StateSingleton private constructor() {
       try {
         println("Lock acquired")
         this.isBackgroundServiceRunning = value
+        promise?.resolve(null)
       } finally {
         lock.unlock()
       }
     } catch (e: InterruptedException) {
+      promise?.reject("Error inSetIsBackgroundServiceRunning",e.toString())
       Thread.currentThread().interrupt()
     }
   }
