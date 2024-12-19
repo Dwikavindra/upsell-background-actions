@@ -15,9 +15,7 @@ export default function App() {
     // Example of an infinite loop task
     const { delay } = taskDataArguments;
     console.log('Here in intensive task');
-
     await BackgroundService.lock();
-    await BackgroundService.setAlarm(20000);
     await new Promise(async (resolve) => {
       for (
         let i = 0;
@@ -102,7 +100,7 @@ export default function App() {
           try {
             console.log('Here');
 
-            await BackgroundService.start(veryIntensiveTask, options);
+            await BackgroundService.start(veryIntensiveTask, options, 20000);
             console.log('Here After');
           } catch (error) {
             console.log('This is error', error);
@@ -126,7 +124,13 @@ export default function App() {
         onPress={async () => {
           try {
             console.log('Here in stop task');
+            while ((await BackgroundService.isItSafeToStopAlarm()) === false) {
+              console.log('Not safe to stop Alarm');
+            }
+            console.log('Safe stopping alarm');
             await BackgroundService.stopAlarm();
+            console.log('Stopped Alarm');
+
             await BackgroundService.setIsBackgroundServiceRunning(false);
             console.log('Here after setIs in StopTask');
             while ((await BackgroundService.listRunningServices()) !== '[]') {

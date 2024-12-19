@@ -90,7 +90,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
 
   @Suppress("unused")
   @ReactMethod
-  fun start(options: ReadableMap, promise: Promise) {
+  fun start(options: ReadableMap, triggerTime: Double, promise: Promise) {
 
     CoroutineScope(Dispatchers.Main).launch{
       try {
@@ -102,6 +102,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
         StateSingleton.getInstance().setBGOptions(bgOptions)
         currentServiceIntent!!.putExtras(bgOptions.extras!!)
         StateSingleton.getInstance().setIsBackgroundServiceRunning(true,null)
+        StateSingleton.getInstance().startAlarm(triggerTime)
         reactApplicationContext.startService(currentServiceIntent)
       } catch (e: java.lang.Exception) {
         promise.reject(e)
@@ -169,6 +170,15 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
           ("""Alarm Manager not canceled Status of AlarmManager:${this.alarmManager}""").toString() + "Status of Pending Intent" + this.alarmPendingIntent
         )
       }
+    } catch (e: java.lang.Exception) {
+      promise.reject(e)
+    }
+  }
+  @Suppress("unused")
+  @ReactMethod
+  fun getIsItSafeToStopAlarm(promise: Promise) {
+    try {
+      promise.resolve(StateSingleton.getInstance().isItSafeToStopAlarm)
     } catch (e: java.lang.Exception) {
       promise.reject(e)
     }
