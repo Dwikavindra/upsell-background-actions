@@ -224,46 +224,6 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
     }
   }
 
-  @SuppressLint("MissingPermission")
-  @Suppress("unused")
-  @ReactMethod
-  fun setAlarm(triggerTime: Double,promise: Promise) {
-    try {
-      val convertedTriggerTime = triggerTime.toLong()
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-        println("inside start function Build SDK is over Lollipop")
-        if (alarmManager != null) {
-          println("inside start function alarm manager is not null")
-          val alarmClockInfo =
-            AlarmClockInfo(System.currentTimeMillis() + convertedTriggerTime, null)
-          val startAlarmIntent = Intent(
-            reactApplicationContext,
-            BackgroundAlarmReceiver::class.java
-          )
-          startAlarmIntent.setAction(StateSingleton.getInstance().ACTION_START_ALARM_MANAGER)
-          val pendingIntent = PendingIntent.getBroadcast(
-            reactApplicationContext,
-            0,
-            startAlarmIntent,
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-          )
-          StateSingleton.getInstance().setPendingIntent(pendingIntent)
-          this@UpsellBackgroundActionsModule.alarmPendingIntent = pendingIntent
-          this@UpsellBackgroundActionsModule.alarmManager!!.setAlarmClock(alarmClockInfo, pendingIntent)
-          println("inside start function Passed set Alarm Clock")
-        } else {
-          throw java.lang.Exception("Alarm manager is null")
-        }
-        promise.resolve(null)
-      } else {
-        throw java.lang.Exception("OS version needs to be larger than android lollipop or android 21")
-      }
-      promise.resolve(null)
-    } catch (e: Exception) {
-      promise.reject(e)
-
-    }
-  }
 
 
   @Suppress("unused")

@@ -130,9 +130,6 @@ class UpsellBackgroundService {
   async unlock() {
     return await UpsellBackgroundActions.unlock();
   }
-  async setAlarm(value: number) {
-    return await UpsellBackgroundActions.setAlarm(value);
-  }
   async isItSafeToStopAlarm() {
     return await UpsellBackgroundActions.getIsItSafeToStopAlarm();
   }
