@@ -17,7 +17,7 @@ class BackgroundAlarmReceiver : BroadcastReceiver() {
       println("This is intent action" + intent.action)
       if (StateSingleton.getInstance().ACTION_START_ALARM_MANAGER == intent.action) {
         try {
-          StateSingleton.getInstance().isItSafeToStopAlarm=false
+          StateSingleton.getInstance().setisItSafeToStopAlarm(false)
           //restart the printing process // new alarm would be set in the module no need to stop the alarm cause thats one shot so if by the time you get here it shouldn'
           // fireoff again
           // 1. Shut down the while loop
@@ -40,8 +40,7 @@ class BackgroundAlarmReceiver : BroadcastReceiver() {
             currentServiceIntent.putExtras(StateSingleton.getInstance().getBGOptions().extras!!)
             Thread.sleep(5000)
             StateSingleton.getInstance().setIsBackgroundServiceRunning(true, null)
-            StateSingleton.getInstance().startAlarm(StateSingleton.getInstance().alarmTime!!)
-            StateSingleton.getInstance().isItSafeToStopAlarm=true
+            StateSingleton.getInstance().setisItSafeToStopAlarm(true)
             reactContext.startService(currentServiceIntent)
             // 1. Shut down the while loop
 

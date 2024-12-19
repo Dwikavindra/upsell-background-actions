@@ -12,6 +12,9 @@ import android.util.Log
 import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Semaphore
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReentrantLock
 
@@ -30,6 +33,7 @@ class StateSingleton private constructor() {
   public val SHARED_PREFERENCES_KEY: String = "com.upsellbackgroundactions.SHARED_PREFERENCES_KEY"
   public val CHANNEL_ID = "RN_BACKGROUND_ACTIONS_CHANNEL"
   public val SERVICE_NOTIFICATION_ID: Int = 92901
+  private val safeToStopAlarmSemaphore= Semaphore(1)
   private val lock = ReentrantLock()
   companion object {
 
@@ -52,11 +56,28 @@ class StateSingleton private constructor() {
   fun getReactContext():ReactContext{
     return this.reactContext!!
   }
-  fun getisItSafeToStopAlarm():Boolean{
-    synchronized(this){
+  suspend fun getisItSafeToStopAlarm():Boolean {
+    try {
+      this.safeToStopAlarmSemaphore.acquire()
       return this.isItSafeToStopAlarm
+    } catch (e: Exception) {
+      Log.d("Error from getIsItSafeToStopAlarm", e.toString())
+      return this.isItSafeToStopAlarm
+    } finally {
+      this.safeToStopAlarmSemaphore.release()
     }
   }
+  suspend fun setisItSafeToStopAlarm(value:Boolean) {
+    try {
+      this.safeToStopAlarmSemaphore.acquire()
+      this.isItSafeToStopAlarm=value
+    } catch (e: Exception) {
+      Log.d("Error from getIsItSafeToStopAlarm", e.toString())
+    } finally {
+      this.safeToStopAlarmSemaphore.release()
+    }
+  }
+
   fun setCurrentServiceIntent(intent: Intent){
     this.currentServiceIntent=intent
   }

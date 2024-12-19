@@ -16,6 +16,7 @@ export default function App() {
     const { delay } = taskDataArguments;
     console.log('Here in intensive task');
     await BackgroundService.lock();
+    await BackgroundService.setAlarm(10000);
     await new Promise(async (resolve) => {
       for (
         let i = 0;
@@ -40,6 +41,11 @@ export default function App() {
           await BackgroundService.sendStopBroadcast();
           await sleep(1000);
         }
+        while ((await BackgroundService.isItSafeToStopAlarm()) === false) {
+          console.log('Not safe to stop alarm');
+          await sleep(1000);
+        }
+        await BackgroundService.stopAlarm();
         console.log('Passed while loop');
         await BackgroundService.unlock();
         console.log('Passed unlock');
@@ -100,7 +106,7 @@ export default function App() {
           try {
             console.log('Here');
 
-            await BackgroundService.start(veryIntensiveTask, options, 20000);
+            await BackgroundService.start(veryIntensiveTask, options);
             console.log('Here After');
           } catch (error) {
             console.log('This is error', error);

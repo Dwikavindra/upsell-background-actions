@@ -15,6 +15,7 @@ import androidx.core.app.NotificationCompat
 import com.facebook.react.HeadlessJsTaskService
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.jstasks.HeadlessJsTaskConfig
+import java.lang.Thread.State
 import kotlin.math.floor
 
 

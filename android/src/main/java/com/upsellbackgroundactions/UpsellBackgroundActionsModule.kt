@@ -25,6 +25,8 @@ import com.facebook.react.bridge.ReadableMap
 import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
@@ -90,7 +92,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
 
   @Suppress("unused")
   @ReactMethod
-  fun start(options: ReadableMap, triggerTime: Double, promise: Promise) {
+  fun start(options: ReadableMap, promise: Promise) {
 
     CoroutineScope(Dispatchers.Main).launch{
       try {
@@ -102,7 +104,6 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
         StateSingleton.getInstance().setBGOptions(bgOptions)
         currentServiceIntent!!.putExtras(bgOptions.extras!!)
         StateSingleton.getInstance().setIsBackgroundServiceRunning(true,null)
-        StateSingleton.getInstance().startAlarm(triggerTime)
         reactApplicationContext.startService(currentServiceIntent)
       } catch (e: java.lang.Exception) {
         promise.reject(e)
@@ -177,11 +178,15 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
   @Suppress("unused")
   @ReactMethod
   fun getIsItSafeToStopAlarm(promise: Promise) {
-    try {
-      promise.resolve(StateSingleton.getInstance().isItSafeToStopAlarm)
-    } catch (e: java.lang.Exception) {
-      promise.reject(e)
+    CoroutineScope(Dispatchers.IO).launch {
+      try {
+        val value= async { StateSingleton.getInstance().getisItSafeToStopAlarm() }
+        promise.resolve(value.await())
+      } catch (e: java.lang.Exception) {
+        promise.reject(e)
+      }
     }
+
   }
   @Suppress("unused")
   @ReactMethod
@@ -217,6 +222,47 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
     try {
       val stopIntent= Intent(StateSingleton.getInstance().ACTION_STOP_SERVICE)
       reactApplicationContext.sendBroadcast(stopIntent)
+      promise.resolve(null)
+    } catch (e: Exception) {
+      promise.reject(e)
+
+    }
+  }
+
+  @SuppressLint("MissingPermission")
+  @Suppress("unused")
+  @ReactMethod
+  fun setAlarm(triggerTime: Double,promise: Promise) {
+    try {
+      val convertedTriggerTime = triggerTime.toLong()
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        println("inside start function Build SDK is over Lollipop")
+        if (alarmManager != null) {
+          println("inside start function alarm manager is not null")
+          val alarmClockInfo =
+            AlarmClockInfo(System.currentTimeMillis() + convertedTriggerTime, null)
+          val startAlarmIntent = Intent(
+            reactApplicationContext,
+            BackgroundAlarmReceiver::class.java
+          )
+          startAlarmIntent.setAction(StateSingleton.getInstance().ACTION_START_ALARM_MANAGER)
+          val pendingIntent = PendingIntent.getBroadcast(
+            reactApplicationContext,
+            0,
+            startAlarmIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+          )
+          StateSingleton.getInstance().setPendingIntent(pendingIntent)
+          this@UpsellBackgroundActionsModule.alarmPendingIntent = pendingIntent
+          this@UpsellBackgroundActionsModule.alarmManager!!.setAlarmClock(alarmClockInfo, pendingIntent)
+          println("inside start function Passed set Alarm Clock")
+        } else {
+          throw java.lang.Exception("Alarm manager is null")
+        }
+        promise.resolve(null)
+      } else {
+        throw java.lang.Exception("OS version needs to be larger than android lollipop or android 21")
+      }
       promise.resolve(null)
     } catch (e: Exception) {
       promise.reject(e)
