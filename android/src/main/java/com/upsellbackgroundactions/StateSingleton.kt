@@ -118,7 +118,7 @@ class StateSingleton private constructor() {
 
   }
   @SuppressLint("MissingPermission")
-  suspend fun startAlarm(triggerTime:Double){
+  suspend fun startAlarm(triggerTime:Double,context:Context?){
     try {
       val convertedTriggerTime = triggerTime.toLong()
       this.setAlarmTime(triggerTime)
@@ -128,12 +128,12 @@ class StateSingleton private constructor() {
           val alarmClockInfo =
             AlarmClockInfo(System.currentTimeMillis() + convertedTriggerTime, null)
           val startAlarmIntent = Intent(
-            this.reactContext!!,
+            context ?: this.reactContext,
             BackgroundAlarmReceiver::class.java
           )
           startAlarmIntent.setAction(StateSingleton.getInstance().ACTION_START_ALARM_MANAGER)
           val pendingIntent = PendingIntent.getBroadcast(
-            this.reactContext!!,
+            context ?: this.reactContext,
             0,
             startAlarmIntent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT

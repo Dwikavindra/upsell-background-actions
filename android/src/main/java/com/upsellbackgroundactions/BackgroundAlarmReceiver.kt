@@ -34,12 +34,12 @@ class BackgroundAlarmReceiver : BroadcastReceiver() {
             Thread.sleep(5000)
             StateSingleton.getInstance().setIsBackgroundServiceRunning(true, null)
             val timeValue= StateSingleton.getInstance().getAlarmTime()
-            StateSingleton.getInstance().startAlarm(timeValue)
+            StateSingleton.getInstance().startAlarm(timeValue,context)
             context.startService(currentServiceIntent)
             StateSingleton.getInstance().setisItSafeToStopAlarm(true)
 
-            // 1. Shut down the while loop
 
+            // 1. Shut down the while loop
           } catch (e: java.lang.Exception) {
             Log.d("Error in BackgroundAlarmReceiver", e.toString())
           }
