@@ -34,6 +34,7 @@ class StateSingleton private constructor() {
   public val CHANNEL_ID = "RN_BACKGROUND_ACTIONS_CHANNEL"
   public val SERVICE_NOTIFICATION_ID: Int = 92901
   private val safeToStopAlarmSemaphore= Semaphore(1)
+  private val alarmTimeSemaphore= Semaphore(1)
   private val lock = ReentrantLock()
   companion object {
 
@@ -67,6 +68,7 @@ class StateSingleton private constructor() {
       this.safeToStopAlarmSemaphore.release()
     }
   }
+
   suspend fun setisItSafeToStopAlarm(value:Boolean) {
     try {
       this.safeToStopAlarmSemaphore.acquire()
@@ -77,6 +79,28 @@ class StateSingleton private constructor() {
       this.safeToStopAlarmSemaphore.release()
     }
   }
+  suspend fun setAlarmTime(value: Double) {
+    try {
+      this.alarmTimeSemaphore.acquire()
+      this.alarmTime=value
+    } catch (e: Exception) {
+      Log.d("Error from alarmTimeSemaphore", e.toString())
+    } finally {
+      this.alarmTimeSemaphore.release()
+    }
+  }
+  suspend fun getAlarmTime():Double {
+    try {
+      this.alarmTimeSemaphore.acquire()
+      return this.alarmTime ?: 300000.0
+    } catch (e: Exception) {
+      Log.d("Error from alarmTimeSemaphore", e.toString())
+      return this.alarmTime ?: 300000.0
+    } finally {
+      this.alarmTimeSemaphore.release()
+    }
+  }
+
 
   fun setCurrentServiceIntent(intent: Intent){
     this.currentServiceIntent=intent
@@ -94,10 +118,10 @@ class StateSingleton private constructor() {
 
   }
   @SuppressLint("MissingPermission")
-  fun startAlarm(triggerTime:Double){
+  suspend fun startAlarm(triggerTime:Double){
     try {
       val convertedTriggerTime = triggerTime.toLong()
-      this.alarmTime=triggerTime
+      this.setAlarmTime(triggerTime)
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
         println("inside start function Build SDK is over Lollipop")
           println("inside start function alarm manager is not null")

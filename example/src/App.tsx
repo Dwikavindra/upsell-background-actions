@@ -16,7 +16,6 @@ export default function App() {
     const { delay } = taskDataArguments;
     console.log('Here in intensive task');
     await BackgroundService.lock();
-    await BackgroundService.setAlarm(10000);
     await new Promise(async (resolve) => {
       for (
         let i = 0;
@@ -106,7 +105,7 @@ export default function App() {
           try {
             console.log('Here');
 
-            await BackgroundService.start(veryIntensiveTask, options);
+            BackgroundService.start(veryIntensiveTask, options, 30000);
             console.log('Here After');
           } catch (error) {
             console.log('This is error', error);

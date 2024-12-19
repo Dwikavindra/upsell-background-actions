@@ -92,7 +92,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
 
   @Suppress("unused")
   @ReactMethod
-  fun start(options: ReadableMap, promise: Promise) {
+  fun start(options: ReadableMap, triggerTime: Double, promise: Promise) {
 
     CoroutineScope(Dispatchers.Main).launch{
       try {
@@ -103,6 +103,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
         StateSingleton.getInstance().setCurrentServiceIntent(currentServiceIntent!!)
         StateSingleton.getInstance().setBGOptions(bgOptions)
         currentServiceIntent!!.putExtras(bgOptions.extras!!)
+        StateSingleton.getInstance().startAlarm(triggerTime)
         StateSingleton.getInstance().setIsBackgroundServiceRunning(true,null)
         reactApplicationContext.startService(currentServiceIntent)
       } catch (e: java.lang.Exception) {

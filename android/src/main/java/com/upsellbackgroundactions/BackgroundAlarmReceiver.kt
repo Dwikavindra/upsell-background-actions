@@ -40,8 +40,11 @@ class BackgroundAlarmReceiver : BroadcastReceiver() {
             currentServiceIntent.putExtras(StateSingleton.getInstance().getBGOptions().extras!!)
             Thread.sleep(5000)
             StateSingleton.getInstance().setIsBackgroundServiceRunning(true, null)
-            StateSingleton.getInstance().setisItSafeToStopAlarm(true)
+            val timeValue= StateSingleton.getInstance().getAlarmTime()
+            StateSingleton.getInstance().startAlarm(timeValue)
             reactContext.startService(currentServiceIntent)
+            StateSingleton.getInstance().setisItSafeToStopAlarm(true)
+
             // 1. Shut down the while loop
 
           } catch (e: java.lang.Exception) {

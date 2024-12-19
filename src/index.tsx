@@ -49,7 +49,7 @@ class UpsellBackgroundService {
     UpsellBackgroundActions.setCallBack(callback);
   }
 
-  async start(task: any, options: { parameters: any }) {
+  async start(task: any, options: { parameters: any }, triggerTime: number) {
     this._runnedTasks++;
     this._currentOptions = this._normalizeOptions(options);
     const finalTask = this._generateTask(task, options.parameters);
@@ -58,10 +58,10 @@ class UpsellBackgroundService {
         this._currentOptions.taskName,
         () => finalTask
       );
-      await UpsellBackgroundActions.start(this._currentOptions);
+      await UpsellBackgroundActions.start(this._currentOptions, triggerTime);
       this._isRunning = true;
     } else {
-      await UpsellBackgroundActions.start(this._currentOptions);
+      await UpsellBackgroundActions.start(this._currentOptions, triggerTime);
       this._isRunning = true;
       finalTask();
     }
