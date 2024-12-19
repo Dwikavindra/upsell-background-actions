@@ -29,20 +29,13 @@ class BackgroundAlarmReceiver : BroadcastReceiver() {
           StateSingleton.getInstance().sendStopBroadcast()
           // 3. Start the process again
           try {
-            // Stop any other inten
-            val reactContext = StateSingleton.getInstance().getReactContext()
-            val optionSharedPreference =
-              reactContext.getSharedPreferences(
-                StateSingleton.getInstance().SHARED_PREFERENCES_KEY,
-                Context.MODE_PRIVATE
-              )
-            val currentServiceIntent = Intent(reactContext, RNBackgroundActionsTask::class.java)
+            val currentServiceIntent = Intent(context, RNBackgroundActionsTask::class.java)
             currentServiceIntent.putExtras(StateSingleton.getInstance().getBGOptions().extras!!)
             Thread.sleep(5000)
             StateSingleton.getInstance().setIsBackgroundServiceRunning(true, null)
             val timeValue= StateSingleton.getInstance().getAlarmTime()
             StateSingleton.getInstance().startAlarm(timeValue)
-            reactContext.startService(currentServiceIntent)
+            context.startService(currentServiceIntent)
             StateSingleton.getInstance().setisItSafeToStopAlarm(true)
 
             // 1. Shut down the while loop
