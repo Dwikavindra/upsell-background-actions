@@ -11,6 +11,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.net.Uri
 import android.os.Build
+import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 import com.facebook.react.HeadlessJsTaskService
 import com.facebook.react.bridge.Arguments
@@ -20,7 +21,7 @@ import kotlin.math.floor
 
 
 class RNBackgroundActionsTask : HeadlessJsTaskService() {
-
+  private var wakeLock: PowerManager.WakeLock? = null
   private val stopServiceReceiver: BroadcastReceiver = object : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
       println("This is intent action" + intent.action)
@@ -55,7 +56,12 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
     ) // Necessary for creating channel for API 26+
     // Create the notification
     val notification = buildNotification(this, bgOptions)
-
+    wakeLock =
+      (getSystemService(Context.POWER_SERVICE) as PowerManager).run {
+        newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "RNBackgroundActionsTask::lock").apply {
+          acquire()
+        }
+      }
     startForeground(StateSingleton.getInstance().SERVICE_NOTIFICATION_ID, notification)
 
     // Register the broadcast receiver to listen for the stop action
@@ -66,6 +72,7 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
       registerReceiver(stopServiceReceiver, filter)
     }
     super.onStartCommand(intent, flags, startId)
+
     return START_STICKY // Keep the service running until explicitly stopped
   }
 
@@ -80,6 +87,11 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
   }
 
   private fun stopForegroundService() {
+    wakeLock?.let {
+      if (it.isHeld) {
+        it.release()
+      }
+    }// release wakeLock
     println("On Stop Foreground Service before stopForeground")
     stopForeground(true) // Stop the foreground service and remove the notification
     stopSelf() // Stop the service itself
