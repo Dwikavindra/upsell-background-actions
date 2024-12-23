@@ -102,7 +102,6 @@ class UpsellBackgroundService {
     this._isRunning = false;
   }
   async sendStopBroadcast() {
-    this._stopTask();
     await UpsellBackgroundActions.sendStopBroadcast();
     this._isRunning = false;
   }

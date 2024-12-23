@@ -12,6 +12,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
@@ -110,9 +111,10 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
         promise.reject(e)
       }
     }
+    }
 
 
-  }
+
   @Suppress("unused")
   @ReactMethod
   fun checkScheduleExactAlarmPermission(promise: Promise) {
@@ -301,20 +303,15 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
       }
     }
   }
-
-
   @Suppress("unused")
   @ReactMethod
   fun stopAlarm(promise:Promise){
       StateSingleton.getInstance().stopAlarm(promise)
   }
-
   @ReactMethod
   fun getAlarmPermissionStatus(promise: Promise) {
     val optionSharedPreference =
       reactApplicationContext.getSharedPreferences(StateSingleton.getInstance().SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
     promise.resolve(optionSharedPreference.getBoolean("ALARM_PERMISSION_GRANTED", false))
   }
-
-
 }
