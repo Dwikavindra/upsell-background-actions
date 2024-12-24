@@ -10,18 +10,19 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.net.Uri
+import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 import com.facebook.react.HeadlessJsTaskService
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.jstasks.HeadlessJsTaskConfig
-import java.lang.Thread.State
 import kotlin.math.floor
 
 
 class RNBackgroundActionsTask : HeadlessJsTaskService() {
   private var wakeLock: PowerManager.WakeLock? = null
+  private var wifiLock: WifiManager.WifiLock? = null
   private val stopServiceReceiver: BroadcastReceiver = object : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
       println("This is intent action" + intent.action)
@@ -62,6 +63,10 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
           acquire()
         }
       }
+    wifiLock = (getSystemService(WIFI_SERVICE) as WifiManager)
+      .createWifiLock(WifiManager.WIFI_MODE_FULL, "mylock")
+
+    wifiLock!!.acquire()
     startForeground(StateSingleton.getInstance().SERVICE_NOTIFICATION_ID, notification)
 
     // Register the broadcast receiver to listen for the stop action

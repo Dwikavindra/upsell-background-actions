@@ -48,6 +48,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
   private var alarmPendingIntent: PendingIntent? = null
   private var mExactAlarmPromise: Promise? = null
   private val semaphore=Semaphore(1)
+  private val addPrinterSemaphore=Semaphore(1)
   init {
     val mActivityEventListener = object : BaseActivityEventListener() {
       override fun onActivityResult(activity: Activity, requestCode: Int, resultCode: Int, intent: Intent?) {
@@ -296,6 +297,34 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
     CoroutineScope(Dispatchers.Main).launch {
       try {
         this@UpsellBackgroundActionsModule.semaphore.release()
+        promise.resolve(null)
+      } catch (e: Exception) {
+        promise.reject(e)
+
+      }
+    }
+  }
+  @Suppress("unused")
+  @ReactMethod
+  fun lockAddPrinterSemaphore(promise: Promise) {
+    CoroutineScope(Dispatchers.Main).launch {
+      try {
+        this@UpsellBackgroundActionsModule.addPrinterSemaphore.acquire()
+        promise.resolve(null)
+      } catch (e: Exception) {
+        promise.reject(e)
+
+      }
+    }
+
+  }
+
+  @Suppress("unused")
+  @ReactMethod
+  fun unlockAddPrinterSemaphore(promise: Promise) {
+    CoroutineScope(Dispatchers.Main).launch {
+      try {
+        this@UpsellBackgroundActionsModule.addPrinterSemaphore.release()
         promise.resolve(null)
       } catch (e: Exception) {
         promise.reject(e)
