@@ -132,6 +132,13 @@ class UpsellBackgroundService {
   async unlock() {
     return await UpsellBackgroundActions.unlock();
   }
+  //TODO: Remove both later into its own semaphore package
+  async lockAddPrinterSemaphore() {
+    return await UpsellBackgroundActions.lockAddPrinterSemaphore();
+  }
+  async unlockAddPrinterSemaphore() {
+    return await UpsellBackgroundActions.unlockAddPrinterSemaphore();
+  }
   async isItSafeToStopAlarm() {
     return await UpsellBackgroundActions.getIsItSafeToStopAlarm();
   }
