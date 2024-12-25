@@ -18,19 +18,15 @@ class BackgroundAlarmReceiver : BroadcastReceiver() {
       if (StateSingleton.getInstance().ACTION_START_ALARM_MANAGER == intent.action) {
         try {
           StateSingleton.getInstance().setisItSafeToStopAlarm(false)
-          //restart the printing process // new alarm would be set in the module no need to stop the alarm cause thats one shot so if by the time you get here it shouldn'
-          // fireoff again
-          // 1. Shut down the while loop
-          StateSingleton.getInstance().setIsBackgroundServiceRunning(false, null)
-          Log.d("BackgroundAlarmReceiver", "Passed setIsBackgroundServiceRunning false")
-          // 2. Send stopBroadcast
-
           println("This is isBackgroundServiceRunning" + StateSingleton.getInstance().isBackgroundServiceRunning)
-          if(StateSingleton.getInstance().listRunningServices()=="[]"){
+          println("Value of StateSingleton listRunningServices"+{StateSingleton.getInstance().listRunningServices(context)})
+          if(StateSingleton.getInstance().listRunningServices(context)=="[]"){
             StateSingleton.getInstance().sendStopBroadcast()
             // 3. Start the process again if it got turned off by the system
             try {
               val currentServiceIntent = Intent(context, RNBackgroundActionsTask::class.java)
+              StateSingleton.getInstance().setIsBackgroundServiceRunning(false, null)
+              Log.d("BackgroundAlarmReceiver", "Passed setIsBackgroundServiceRunning false")
               currentServiceIntent.putExtras(StateSingleton.getInstance().getBGOptions().extras!!)
               Thread.sleep(5000)
               StateSingleton.getInstance().setIsBackgroundServiceRunning(true, null)
@@ -44,6 +40,7 @@ class BackgroundAlarmReceiver : BroadcastReceiver() {
             }
           }else{
             Thread.sleep(5000)
+            println("In else State listRunningServices"+{StateSingleton.getInstance().listRunningServices(context)})
             val timeValue= StateSingleton.getInstance().getAlarmTime()
             StateSingleton.getInstance().startAlarm(timeValue,context)
             StateSingleton.getInstance().setisItSafeToStopAlarm(true)
