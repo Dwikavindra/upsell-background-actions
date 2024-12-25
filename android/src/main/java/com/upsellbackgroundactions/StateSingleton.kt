@@ -35,7 +35,7 @@ class StateSingleton private constructor() {
   public val SERVICE_NOTIFICATION_ID: Int = 92901
   private val safeToStopAlarmSemaphore= Semaphore(1)
   private val alarmTimeSemaphore= Semaphore(1)
-  private val lock = ReentrantLock()
+  private val isBackgroundServiceRunningSemaphore= Semaphore(1)
   companion object {
 
     @Volatile private var instance: StateSingleton? = null // Volatile modifier is necessary
@@ -174,18 +174,15 @@ class StateSingleton private constructor() {
     }
   }
   @SuppressLint("ApplySharedPref")
-  fun setIsBackgroundServiceRunning(value: Boolean, promise: Promise?) {
+  suspend fun setIsBackgroundServiceRunning(value: Boolean, promise: Promise?) {
     try {
-      while (!lock.tryLock(100, TimeUnit.MILLISECONDS)) {
-        println("Keep trying to lock")
-        Thread.sleep(50) // Add a small delay between attempts
-      }
       try {
         println("Lock acquired")
+        isBackgroundServiceRunningSemaphore.acquire()
         this.isBackgroundServiceRunning = value
         promise?.resolve(null)
       } finally {
-        lock.unlock()
+        isBackgroundServiceRunningSemaphore.release()
       }
     } catch (e: InterruptedException) {
       promise?.reject("Error inSetIsBackgroundServiceRunning",e.toString())
@@ -204,22 +201,34 @@ class StateSingleton private constructor() {
 
       return services.toString()
   }
-  fun isBackgroundServiceRunning(promise:Promise) {
+  suspend fun isBackgroundServiceRunning(promise:Promise) {
     try {
-      while (!lock.tryLock(100, TimeUnit.MILLISECONDS)) {
-        println("Keep trying to lock")
-        Thread.sleep(50) // Add a small delay between attempts
-      }
       try {
+        isBackgroundServiceRunningSemaphore.acquire()
         println("Lock acquired")
         promise.resolve(this.isBackgroundServiceRunning)
       } finally {
-        lock.unlock()
+        isBackgroundServiceRunningSemaphore.release()
       }
     } catch (e: InterruptedException) {
       Thread.currentThread().interrupt()
     }
 
+  }
+  fun listRunningServices(context: Context):String {
+    try {
+      val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+      val runningServices = activityManager.getRunningServices(Int.MAX_VALUE)
+
+      val services = runningServices
+        .filter { it.service.packageName == context.packageName }
+        .map { it.service.className }
+
+      return services.toString()
+    } catch (e: Exception) {
+      Log.d("Error List Running Service",e.toString())
+      return "Error not able to list service"
+    }
   }
 ////  fun waitUntilServiceisEmpty(){
 ////    while(this.listRunningServices()=="[]"{

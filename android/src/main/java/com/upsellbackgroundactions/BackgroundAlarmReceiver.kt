@@ -26,23 +26,27 @@ class BackgroundAlarmReceiver : BroadcastReceiver() {
           // 2. Send stopBroadcast
 
           println("This is isBackgroundServiceRunning" + StateSingleton.getInstance().isBackgroundServiceRunning)
-          StateSingleton.getInstance().sendStopBroadcast()
-          // 3. Start the process again
-          try {
-            val currentServiceIntent = Intent(context, RNBackgroundActionsTask::class.java)
-            currentServiceIntent.putExtras(StateSingleton.getInstance().getBGOptions().extras!!)
-            Thread.sleep(5000)
-            StateSingleton.getInstance().setIsBackgroundServiceRunning(true, null)
+          if(StateSingleton.getInstance().listRunningServices()=="[]"){
+            StateSingleton.getInstance().sendStopBroadcast()
+            // 3. Start the process again if it got turned off by the system
+            try {
+              val currentServiceIntent = Intent(context, RNBackgroundActionsTask::class.java)
+              currentServiceIntent.putExtras(StateSingleton.getInstance().getBGOptions().extras!!)
+              Thread.sleep(5000)
+              StateSingleton.getInstance().setIsBackgroundServiceRunning(true, null)
+              val timeValue= StateSingleton.getInstance().getAlarmTime()
+              StateSingleton.getInstance().startAlarm(timeValue,context)
+              context.startService(currentServiceIntent)
+              StateSingleton.getInstance().setisItSafeToStopAlarm(true)
+              // 1. Shut down the while loop
+            } catch (e: java.lang.Exception) {
+              Log.d("Error in BackgroundAlarmReceiver", e.toString())
+            }
+          }else{
             val timeValue= StateSingleton.getInstance().getAlarmTime()
             StateSingleton.getInstance().startAlarm(timeValue,context)
-            context.startService(currentServiceIntent)
-            StateSingleton.getInstance().setisItSafeToStopAlarm(true)
-
-
-            // 1. Shut down the while loop
-          } catch (e: java.lang.Exception) {
-            Log.d("Error in BackgroundAlarmReceiver", e.toString())
           }
+
 
 
         } catch (e: Exception) {

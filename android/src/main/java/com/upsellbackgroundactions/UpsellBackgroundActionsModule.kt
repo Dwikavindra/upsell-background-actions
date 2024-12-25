@@ -213,12 +213,17 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
   @Suppress("unused")
   @ReactMethod
   fun isBackgroundServiceRunning(promise: Promise) {
-    StateSingleton.getInstance().isBackgroundServiceRunning(promise)
+    CoroutineScope(Dispatchers.Default).launch {
+      StateSingleton.getInstance().isBackgroundServiceRunning(promise)
+    }
   }
   @Suppress("unused")
   @ReactMethod
   fun setIsBackgroundServiceRunning(value:Boolean,promise: Promise) {
-    StateSingleton.getInstance().setIsBackgroundServiceRunning(value,promise)
+    CoroutineScope(Dispatchers.Default).launch {
+      StateSingleton.getInstance().setIsBackgroundServiceRunning(value,promise)
+    }
+
   }
   @Suppress("unused")
   @ReactMethod
@@ -279,7 +284,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
   @Suppress("unused")
   @ReactMethod
   fun lock(promise: Promise) {
-    CoroutineScope(Dispatchers.Main).launch {
+    CoroutineScope(Dispatchers.Default).launch {
       try {
         this@UpsellBackgroundActionsModule.semaphore.acquire()
         promise.resolve(null)
@@ -294,7 +299,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
   @Suppress("unused")
   @ReactMethod
   fun unlock(promise: Promise) {
-    CoroutineScope(Dispatchers.Main).launch {
+    CoroutineScope(Dispatchers.Default).launch {
       try {
         this@UpsellBackgroundActionsModule.semaphore.release()
         promise.resolve(null)
