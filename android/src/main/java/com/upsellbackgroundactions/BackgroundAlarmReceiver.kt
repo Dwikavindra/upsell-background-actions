@@ -43,8 +43,10 @@ class BackgroundAlarmReceiver : BroadcastReceiver() {
               Log.d("Error in BackgroundAlarmReceiver", e.toString())
             }
           }else{
+            Thread.sleep(5000)
             val timeValue= StateSingleton.getInstance().getAlarmTime()
             StateSingleton.getInstance().startAlarm(timeValue,context)
+            StateSingleton.getInstance().setisItSafeToStopAlarm(true)
           }
 
 
