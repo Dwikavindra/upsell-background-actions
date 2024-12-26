@@ -79,11 +79,10 @@ class UpsellBackgroundService {
     return async () => {
       await new Promise((resolve) => {
         self._stopTask = resolve;
-        task(parameters).then(() => self.stop());
+        task(parameters);
       });
     };
   }
-
   _normalizeOptions(options: any) {
     return {
       taskName: options.taskName + this._runnedTasks,
@@ -96,11 +95,6 @@ class UpsellBackgroundService {
     };
   }
 
-  async stop() {
-    this._stopTask();
-    await UpsellBackgroundActions.stop();
-    this._isRunning = false;
-  }
   async sendStopBroadcast() {
     await UpsellBackgroundActions.sendStopBroadcast();
     this._isRunning = false;
