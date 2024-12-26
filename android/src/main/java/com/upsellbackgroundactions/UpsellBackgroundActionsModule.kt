@@ -6,16 +6,15 @@ import android.app.AlarmManager
 import android.app.AlarmManager.AlarmClockInfo
 import android.app.NotificationManager
 import android.app.PendingIntent
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.net.Uri
 import android.os.Build
+import android.os.PowerManager
+import android.provider.Settings
 import androidx.annotation.RequiresApi
-import androidx.core.content.ContextCompat
-import androidx.core.content.edit
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.edit
+import androidx.core.content.ContextCompat.startActivity
 import com.facebook.react.bridge.BaseActivityEventListener
 import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.Promise
@@ -23,16 +22,11 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.ReadableMap
-import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
-import java.lang.Thread.State
-import java.util.concurrent.locks.ReentrantLock
 
 
 class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
@@ -74,6 +68,30 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
   @ReactMethod
   fun setCallBack(callback: Callback){
     StateSingleton.getInstance().setCallBack(callback)
+  }
+
+  @ReactMethod
+  fun isIgnoreBatteryOptimization(promise:Promise){
+    val packageName: String = reactApplicationContext.packageName
+    val pm = reactApplicationContext.getSystemService(Context.POWER_SERVICE) as PowerManager
+    promise.resolve(pm.isIgnoringBatteryOptimizations(packageName))
+
+  }
+  @SuppressLint("BatteryLife")
+  @ReactMethod
+  fun requestIgnoreBatteryOptmization(promise:Promise){
+    val intent = Intent()
+    intent.setAction(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+    intent.setData(Uri.parse("package:" + reactApplicationContext.packageName));
+    startActivity(reactApplicationContext,intent,null)
+    promise.resolve(null)
+  }
+  @ReactMethod
+  fun requestActionIgnoreBatteryOptimizationSettings(promise:Promise){
+    val intent = Intent()
+    intent.setAction(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+    startActivity(reactApplicationContext,intent,null)
+    promise.resolve(null)
   }
   @SuppressLint("ServiceCast")
   @ReactMethod

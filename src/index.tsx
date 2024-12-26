@@ -139,6 +139,16 @@ class UpsellBackgroundService {
   async unlockAddPrinterSemaphore() {
     return await UpsellBackgroundActions.unlockAddPrinterSemaphore();
   }
+  async isIgnoreBatteryOptimization() {
+    return await UpsellBackgroundActions.isIgnoreBatteryOptimization();
+  }
+
+  async requestIgnoreBatteryOptmization() {
+    return await UpsellBackgroundActions.requestIgnoreBatteryOptmization();
+  }
+  async requestActionIgnoreBatteryOptimizationSettings() {
+    return await UpsellBackgroundActions.requestActionIgnoreBatteryOptimizationSettings();
+  }
   async isItSafeToStopAlarm() {
     return await UpsellBackgroundActions.getIsItSafeToStopAlarm();
   }
