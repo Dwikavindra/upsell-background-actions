@@ -83,6 +83,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
     val intent = Intent()
     intent.setAction(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
     intent.setData(Uri.parse("package:" + reactApplicationContext.packageName));
+    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
     startActivity(reactApplicationContext,intent,null)
     promise.resolve(null)
   }
