@@ -4,14 +4,12 @@ const { UpsellBackgroundActions } = NativeModules;
 
 class UpsellBackgroundService {
   _runnedTasks: number;
-  _stopTask: any;
   _isRunning: boolean;
   _currentOptions: any;
   constructor() {
     /** @private */
     this._runnedTasks = 0;
     /** @private @type {(arg0?: any) => void} */
-    this._stopTask = () => {};
     /** @private */
     this._isRunning = false;
     /** @private @type {BackgroundTaskOptions} */
@@ -74,11 +72,8 @@ class UpsellBackgroundService {
    * @param {T} [parameters]
    */
   _generateTask(task: (arg0: any) => Promise<any>, parameters: any) {
-    // eslint-disable-next-line consistent-this
-    const self = this;
     return async () => {
-      await new Promise((resolve) => {
-        self._stopTask = resolve;
+      await new Promise(() => {
         task(parameters);
       });
     };

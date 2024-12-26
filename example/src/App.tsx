@@ -16,7 +16,7 @@ export default function App() {
     const { delay } = taskDataArguments;
     console.log('Here in intensive task');
     await BackgroundService.lock();
-    await new Promise(async (resolve) => {
+    await new Promise(async () => {
       for (
         let i = 0;
         await BackgroundService.isBackgroundServiceRunning();
