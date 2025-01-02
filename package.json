@@ -1,6 +1,6 @@
 {
   "name": "upsell-background-actions",
-  "version": "0.1.31",
+  "version": "0.1.32",
   "description": "headless js for upsell",
   "source": "./src/index.tsx",
   "main": "./lib/commonjs/index.js",

@@ -82,13 +82,8 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
   }
 
   override fun onDestroy() {
+    this.stopForegroundService()
     super.onDestroy()
-
-    stopForeground(true)
-    stopSelf()
-
-  println("Passed statement stopForeground and stopSelf")
-    unregisterReceiver(stopServiceReceiver) // Unregister the broadcast receiver
   }
 
   private fun stopForegroundService() {
@@ -97,10 +92,16 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
         it.release()
       }
     }// release wakeLock
+    wifiLock?.let {
+      if (it.isHeld) {
+        it.release()
+      }
+    }// release wakeLock
     println("On Stop Foreground Service before stopForeground")
-    stopForeground(true) // Stop the foreground service and remove the notification
+    stopForeground(STOP_FOREGROUND_REMOVE) // Stop the foreground service and remove the notification
     stopSelf() // Stop the service itself
     println("Passed stopSelf")
+    unregisterReceiver(stopServiceReceiver) // Unregister the broadcast receiver
 
   }
 
