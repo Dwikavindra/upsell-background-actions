@@ -26,7 +26,6 @@ class BackgroundAlarmReceiver : BroadcastReceiver() {
           StateSingleton.getInstance().setisItSafeToStopAlarm(false)
           println("This is isBackgroundServiceRunning" + StateSingleton.getInstance().isBackgroundServiceRunning)
           println("Value of StateSingleton listRunningServices"+{StateSingleton.getInstance().listRunningServices(context)})
-          if(StateSingleton.getInstance().listRunningServices(context)=="[]"){
             StateSingleton.getInstance().sendStopBroadcast()
             // 3. Start the process again if it got turned off by the system
             try {
@@ -44,13 +43,6 @@ class BackgroundAlarmReceiver : BroadcastReceiver() {
             } catch (e: java.lang.Exception) {
               Log.d("Error in BackgroundAlarmReceiver", e.toString())
             }
-          }else{
-            Thread.sleep(5000)
-            println("In else State listRunningServices"+{StateSingleton.getInstance().listRunningServices(context)})
-            val timeValue= StateSingleton.getInstance().getAlarmTime()
-            StateSingleton.getInstance().startAlarm(timeValue,context)
-            StateSingleton.getInstance().setisItSafeToStopAlarm(true)
-          }
 
 
 
