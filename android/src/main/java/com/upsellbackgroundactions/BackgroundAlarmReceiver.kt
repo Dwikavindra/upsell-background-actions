@@ -16,6 +16,12 @@ class BackgroundAlarmReceiver : BroadcastReceiver() {
     CoroutineScope(Dispatchers.Default).launch {
       println("This is intent action" + intent.action)
       if (StateSingleton.getInstance().ACTION_START_ALARM_MANAGER == intent.action) {
+        if(StateSingleton.getInstance().getIsAlarmStoppedByUser()){
+          //ensure truly that alarm is stopped the method above safe to stop alarm is still needed if we need to cancel the alarm immediately,
+          // however in the case that it fails this should stop it regardless
+          // this will only be true if the user activates it from the ui not when restarting, when restarting via this receiver  the value is always false
+          return@launch
+        }
         try {
           StateSingleton.getInstance().setisItSafeToStopAlarm(false)
           println("This is isBackgroundServiceRunning" + StateSingleton.getInstance().isBackgroundServiceRunning)

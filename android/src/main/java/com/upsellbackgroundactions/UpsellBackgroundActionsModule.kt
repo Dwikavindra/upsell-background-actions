@@ -124,6 +124,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
         StateSingleton.getInstance().setCurrentServiceIntent(currentServiceIntent!!)
         StateSingleton.getInstance().setBGOptions(bgOptions)
         currentServiceIntent!!.putExtras(bgOptions.extras!!)
+        StateSingleton.getInstance().setIsAlarmStoppedByUser(false)
         StateSingleton.getInstance().startAlarm(triggerTime,this@UpsellBackgroundActionsModule.reactApplicationContext)
         StateSingleton.getInstance().setIsBackgroundServiceRunning(true,null)
         reactApplicationContext.startService(currentServiceIntent)

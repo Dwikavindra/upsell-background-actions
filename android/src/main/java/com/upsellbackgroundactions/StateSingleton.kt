@@ -25,6 +25,7 @@ class StateSingleton private constructor() {
   private var reactContext:ReactContext?=null
   private var currentServiceIntent:Intent?=null
   public var isItSafeToStopAlarm:Boolean=true;
+  public var isAlarmStoppedByUser:Boolean=true;
   public var isBackgroundServiceRunning=false;
   private var bgOptions:BackgroundTaskOptions?=null
   private var pendingIntent:PendingIntent?=null
@@ -34,6 +35,7 @@ class StateSingleton private constructor() {
   public val CHANNEL_ID = "RN_BACKGROUND_ACTIONS_CHANNEL"
   public val SERVICE_NOTIFICATION_ID: Int = 92901
   private val safeToStopAlarmSemaphore= Semaphore(1)
+  private val alarmStopByUserSemaphore= Semaphore(1)
   private val alarmTimeSemaphore= Semaphore(1)
   private val isBackgroundServiceRunningSemaphore= Semaphore(1)
   companion object {
@@ -77,6 +79,28 @@ class StateSingleton private constructor() {
       Log.d("Error from getIsItSafeToStopAlarm", e.toString())
     } finally {
       this.safeToStopAlarmSemaphore.release()
+    }
+  }
+
+  suspend fun setIsAlarmStoppedByUser(value:Boolean) {
+    try {
+      this.alarmStopByUserSemaphore.acquire()
+      this.isAlarmStoppedByUser=value
+    } catch (e: Exception) {
+      Log.d("Error from setIsAlarmStoppedByUser", e.toString())
+    } finally {
+      this.alarmStopByUserSemaphore.release()
+    }
+  }
+  suspend fun getIsAlarmStoppedByUser():Boolean {
+    try {
+      this.alarmStopByUserSemaphore.acquire()
+      return this.isAlarmStoppedByUser
+    } catch (e: Exception) {
+      Log.d("Error from getIsAlarmStoppedByUser", e.toString())
+      return this.isItSafeToStopAlarm
+    } finally {
+      this.alarmStopByUserSemaphore.release()
     }
   }
   suspend fun setAlarmTime(value: Double) {
@@ -155,6 +179,7 @@ class StateSingleton private constructor() {
   }
   suspend fun stopAlarm(context:Context?, promise: Promise){
     try{
+      this.setIsAlarmStoppedByUser(true)
       if(getisItSafeToStopAlarm()){
         val startAlarmIntent = Intent(
           context ?: this.reactContext,
