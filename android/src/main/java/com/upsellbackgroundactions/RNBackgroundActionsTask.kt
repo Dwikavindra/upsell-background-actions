@@ -82,7 +82,6 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
   }
 
   override fun onDestroy() {
-    this.stopForegroundService()
     super.onDestroy()
   }
 

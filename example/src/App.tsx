@@ -11,6 +11,24 @@ export default function App() {
   // as long as it doesn't touch UI. Once your task completes (i.e. the promise is resolved),
   // React Native will go into "paused" mode (unless there are other tasks running,
   // or there is a foreground app).
+  const STOP_ALARM_MAX_RETRIES = 6;
+  const stopAlarm = async () => {
+    let i = 0;
+    while (i < STOP_ALARM_MAX_RETRIES) {
+      try {
+        await BackgroundService.stopAlarm();
+      } catch (error) {
+        const receivedError: Error = error as Error;
+        if (!receivedError.message.includes('Pending Intent not Found')) {
+          console.log('This is error', receivedError);
+        }
+        if (!receivedError.message.includes('Not Safe to stop Alarm')) {
+          console.log('This is error', receivedError);
+        }
+      }
+      i++;
+    }
+  };
   const veryIntensiveTask = async (taskDataArguments: any) => {
     // Example of an infinite loop task
     const { delay } = taskDataArguments;
@@ -44,7 +62,7 @@ export default function App() {
           console.log('Not safe to stop alarm');
           await sleep(1000);
         }
-        await BackgroundService.stopAlarm();
+        await stopAlarm();
         console.log('Passed while loop');
         await BackgroundService.unlock();
         console.log('Passed unlock');
@@ -133,7 +151,7 @@ export default function App() {
               console.log('Not safe to stop Alarm');
             }
             console.log('Safe stopping alarm');
-            await BackgroundService.stopAlarm();
+            await stopAlarm();
             console.log('Stopped Alarm');
 
             await BackgroundService.setIsBackgroundServiceRunning(false);
