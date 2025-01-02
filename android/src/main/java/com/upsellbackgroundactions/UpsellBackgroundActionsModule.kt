@@ -359,7 +359,10 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
   @Suppress("unused")
   @ReactMethod
   fun stopAlarm(promise:Promise){
-      StateSingleton.getInstance().stopAlarm(promise)
+    CoroutineScope(Dispatchers.Main).launch {
+      StateSingleton.getInstance().stopAlarm(this@UpsellBackgroundActionsModule.reactApplicationContext,promise)
+    }
+
   }
   @ReactMethod
   fun getAlarmPermissionStatus(promise: Promise) {

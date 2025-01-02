@@ -153,14 +153,30 @@ class StateSingleton private constructor() {
     val alarmManager=this.reactContext!!.getSystemService(AlarmManager::class.java)
     return alarmManager
   }
-  fun stopAlarm(promise: Promise){
+  suspend fun stopAlarm(context:Context?, promise: Promise){
     try{
-      if(this.pendingIntent!==null){
-        getAlarmManager().cancel(this.pendingIntent!!)
+      if(getisItSafeToStopAlarm()){
+        val startAlarmIntent = Intent(
+          context ?: this.reactContext,
+          BackgroundAlarmReceiver::class.java
+        )
+        val pendingIntent = PendingIntent.getBroadcast(
+          context ?: this.reactContext,
+          0,
+          startAlarmIntent,
+          PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+        )
+        if(pendingIntent===null){
+          throw Exception("Pending Intent not Found")
+        }
+        getAlarmManager().cancel(pendingIntent)
+
         promise.resolve(null)
       }else{
-        throw Exception("Status of Pending Intent" + this.pendingIntent)
+        throw Exception("Not Safe to stop Alarm")
       }
+
+
     }catch (e:Exception){
       promise.reject(e)
     }
