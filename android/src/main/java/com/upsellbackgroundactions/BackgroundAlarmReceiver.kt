@@ -15,30 +15,30 @@ class BackgroundAlarmReceiver : BroadcastReceiver() {
   override fun onReceive(context: Context, intent: Intent) {
     CoroutineScope(Dispatchers.Default).launch {
       println("This is intent action" + intent.action)
-      if (StateSingleton.getInstance().ACTION_START_ALARM_MANAGER == intent.action) {
-        if(StateSingleton.getInstance().getIsAlarmStoppedByUser()){
+      if (Names().ACTION_START_ALARM_MANAGER== intent.action) {
+        if(StateSingleton.getInstance(context).getIsAlarmStoppedByUser()){
           //ensure truly that alarm is stopped the method above safe to stop alarm is still needed if we need to cancel the alarm immediately,
           // however in the case that it fails this should stop it regardless
           // this will only be true if the user activates it from the ui not when restarting, when restarting via this receiver  the value is always false
           return@launch
         }
         try {
-          StateSingleton.getInstance().setisItSafeToStopAlarm(false)
-          println("This is isBackgroundServiceRunning" + StateSingleton.getInstance().isBackgroundServiceRunning)
-          println("Value of StateSingleton listRunningServices"+{StateSingleton.getInstance().listRunningServices(context)})
-            StateSingleton.getInstance().sendStopBroadcast()
+          StateSingleton.getInstance(context).setisItSafeToStopAlarm(false)
+          println("This is isBackgroundServiceRunning" + StateSingleton.getInstance(context).isBackgroundServiceRunning())
+          println("Value of StateSingleton listRunningServices"+{StateSingleton.getInstance(context).listRunningServices()})
+            StateSingleton.getInstance(context).sendStopBroadcast()
             // 3. Start the process again if it got turned off by the system
             try {
               val currentServiceIntent = Intent(context, RNBackgroundActionsTask::class.java)
-              StateSingleton.getInstance().setIsBackgroundServiceRunning(false, null)
+              StateSingleton.getInstance(context).setIsBackgroundServiceRunning(false, null)
               Log.d("BackgroundAlarmReceiver", "Passed setIsBackgroundServiceRunning false")
-              currentServiceIntent.putExtras(StateSingleton.getInstance().getBGOptions().extras!!)
+              currentServiceIntent.putExtras(StateSingleton.getInstance(context).getBGOptions().extras!!)
               Thread.sleep(5000)
-              StateSingleton.getInstance().setIsBackgroundServiceRunning(true, null)
-              val timeValue= StateSingleton.getInstance().getAlarmTime()
-              StateSingleton.getInstance().startAlarm(timeValue,context)
+              StateSingleton.getInstance(context).setIsBackgroundServiceRunning(true, null)
+              val timeValue= StateSingleton.getInstance(context).getAlarmTime()
+              StateSingleton.getInstance(context).startAlarm(timeValue)
               context.startService(currentServiceIntent)
-              StateSingleton.getInstance().setisItSafeToStopAlarm(true)
+              StateSingleton.getInstance(context).setisItSafeToStopAlarm(true)
               // 1. Shut down the while loop
             } catch (e: java.lang.Exception) {
               Log.d("Error in BackgroundAlarmReceiver", e.toString())

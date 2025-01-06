@@ -9,14 +9,20 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED
 import android.net.Uri
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.PowerManager
+import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import com.facebook.react.HeadlessJsTaskService
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.jstasks.HeadlessJsTaskConfig
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import java.lang.Thread.State
 import kotlin.math.floor
 
 
@@ -27,7 +33,7 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
     override fun onReceive(context: Context, intent: Intent) {
       println("This is intent action" + intent.action)
 
-      if (StateSingleton.getInstance().ACTION_STOP_SERVICE == intent.action) {
+      if (Names().ACTION_STOP_SERVICE == intent.action) {
         stopForegroundService() // Stop the foreground service when the broadcast is received
       }
     }
@@ -46,6 +52,7 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
     return null
   }
 
+
   @SuppressLint("ForegroundServiceType", "UnspecifiedRegisterReceiverFlag")
   override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
     val extras = intent.extras
@@ -57,20 +64,28 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
     ) // Necessary for creating channel for API 26+
     // Create the notification
     val notification = buildNotification(this, bgOptions)
-    wakeLock =
-      (getSystemService(Context.POWER_SERVICE) as PowerManager).run {
-        newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "RNBackgroundActionsTask::lock").apply {
-          acquire()
+    CoroutineScope(Dispatchers.IO).launch{
+      wakeLock =
+        (getSystemService(Context.POWER_SERVICE) as PowerManager).run {
+          newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "RNBackgroundActionsTask::lock").apply {
+            acquire(StateSingleton.getInstance(this@RNBackgroundActionsTask).getAlarmTime().toLong()+60000)
+          }
         }
-      }
-    wifiLock = (getSystemService(WIFI_SERVICE) as WifiManager)
-      .createWifiLock(WifiManager.WIFI_MODE_FULL, "mylock")
+      wifiLock = (getSystemService(WIFI_SERVICE) as WifiManager)
+        .createWifiLock(WifiManager.WIFI_MODE_FULL, "mylock")
+      wifiLock!!.acquire()
+    }
 
-    wifiLock!!.acquire()
-    startForeground(StateSingleton.getInstance().SERVICE_NOTIFICATION_ID, notification)
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        startForeground(Names().SERVICE_NOTIFICATION_ID, notification,FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED)
+
+    }else{
+      startForeground(Names().SERVICE_NOTIFICATION_ID,notification)
+    }
 
     // Register the broadcast receiver to listen for the stop action
-    val filter = IntentFilter(StateSingleton.getInstance().ACTION_STOP_SERVICE)
+    val filter = IntentFilter(Names().ACTION_STOP_SERVICE)
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
       registerReceiver(stopServiceReceiver, filter, RECEIVER_EXPORTED)
     } else {
@@ -107,7 +122,7 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
   private fun createNotificationChannel(taskTitle: String, taskDesc: String) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
       val importance = NotificationManager.IMPORTANCE_LOW
-      val channel = NotificationChannel(StateSingleton.getInstance().CHANNEL_ID, taskTitle, importance)
+      val channel = NotificationChannel(Names().CHANNEL_ID, taskTitle, importance)
       channel.description = taskDesc
       val notificationManager = getSystemService(
         NotificationManager::class.java
@@ -147,7 +162,7 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
           PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
       }
-      val builder = NotificationCompat.Builder(context,StateSingleton.getInstance().CHANNEL_ID)
+      val builder = NotificationCompat.Builder(context,Names().CHANNEL_ID)
         .setContentTitle(taskTitle)
         .setContentText(taskDesc)
         .setSmallIcon(iconInt)

@@ -58,11 +58,6 @@ export default function App() {
           await BackgroundService.sendStopBroadcast();
           await sleep(1000);
         }
-        while ((await BackgroundService.isItSafeToStopAlarm()) === false) {
-          console.log('Not safe to stop alarm');
-          await sleep(1000);
-        }
-        await stopAlarm();
         console.log('Passed while loop');
         await BackgroundService.unlock();
         console.log('Passed unlock');
@@ -123,7 +118,7 @@ export default function App() {
           try {
             console.log('Here');
 
-            BackgroundService.start(veryIntensiveTask, options, 30000);
+            BackgroundService.start(veryIntensiveTask, options, 10000);
             console.log('Here After');
           } catch (error) {
             console.log('This is error', error);

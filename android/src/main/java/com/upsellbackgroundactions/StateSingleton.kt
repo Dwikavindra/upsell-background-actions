@@ -9,72 +9,76 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.util.Log
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.preferencesDataStore
 import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.Promise
-import com.facebook.react.bridge.ReactContext
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Semaphore
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.locks.ReentrantLock
+
+import java.lang.ref.WeakReference
 
 
-class StateSingleton private constructor() {
+val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
+class StateSingleton private constructor(context:Context) {
   private var functionCallBack:Callback?=null
   public var alarmTime:Double?=null
-  private var reactContext:ReactContext?=null
+  private val context: WeakReference<Context> = WeakReference(context)
   private var currentServiceIntent:Intent?=null
-  public var isItSafeToStopAlarm:Boolean=true;
-  public var isAlarmStoppedByUser:Boolean=true;
-  public var isBackgroundServiceRunning=false;
   private var bgOptions:BackgroundTaskOptions?=null
   private var pendingIntent:PendingIntent?=null
-  public val ACTION_STOP_SERVICE: String = "com.upsellbackgroundactions.ACTION_STOP_SERVICE"
-  public val ACTION_START_ALARM_MANAGER: String = "com.upsellbackgroundactions.ACTION_START_ALARM_MANAGER"
-  public val SHARED_PREFERENCES_KEY: String = "com.upsellbackgroundactions.SHARED_PREFERENCES_KEY"
-  public val CHANNEL_ID = "RN_BACKGROUND_ACTIONS_CHANNEL"
-  public val SERVICE_NOTIFICATION_ID: Int = 92901
+  private val keyIsBackgroundServiceRunning = booleanPreferencesKey("isBackgroundServiceRunning")
+  private val keyIsItSafeToStopAlarm= booleanPreferencesKey("isItSafeToStopAlarm")
+  private val keyIsAlarmStoppedByUser= booleanPreferencesKey("isAlarmStoppedByUser")
   private val safeToStopAlarmSemaphore= Semaphore(1)
   private val alarmStopByUserSemaphore= Semaphore(1)
   private val alarmTimeSemaphore= Semaphore(1)
   private val isBackgroundServiceRunningSemaphore= Semaphore(1)
+  private val alarmContextSemaphore= Semaphore(1)
   companion object {
+
 
     @Volatile private var instance: StateSingleton? = null // Volatile modifier is necessary
 
-    fun getInstance() =
-      instance ?: synchronized(this) { // synchronized to avoid concurrency problem
-        instance ?: StateSingleton().also { instance = it }
+    fun getInstance(context:Context):StateSingleton {
+     return instance ?: synchronized(this) { // synchronized to avoid concurrency problem
+        instance ?: StateSingleton(context).also { instance = it }
       }
-  }
+    }
+    }
   fun setCallBack(callBack:Callback){
     this.functionCallBack=callBack
   }
   fun getCallBack():Callback?{
     return this.functionCallBack
   }
-  fun setReactContext(context: ReactContext){
-    this.reactContext=context
-  }
-  fun getReactContext():ReactContext{
-    return this.reactContext!!
-  }
   suspend fun getisItSafeToStopAlarm():Boolean {
     try {
       this.safeToStopAlarmSemaphore.acquire()
-      return this.isItSafeToStopAlarm
+      val result:Preferences= context.get()!!.dataStore.data.first()
+      return result[keyIsItSafeToStopAlarm] ?: false
     } catch (e: Exception) {
       Log.d("Error from getIsItSafeToStopAlarm", e.toString())
-      return this.isItSafeToStopAlarm
+      return true// return default value
     } finally {
       this.safeToStopAlarmSemaphore.release()
     }
+  }
+
+  suspend fun getContext():Context{
+    return this.context.get()!!
   }
 
   suspend fun setisItSafeToStopAlarm(value:Boolean) {
     try {
       this.safeToStopAlarmSemaphore.acquire()
-      this.isItSafeToStopAlarm=value
+      context.get()!!.dataStore.edit { settings ->
+        settings[keyIsItSafeToStopAlarm]=value
+      }
     } catch (e: Exception) {
       Log.d("Error from getIsItSafeToStopAlarm", e.toString())
     } finally {
@@ -82,10 +86,13 @@ class StateSingleton private constructor() {
     }
   }
 
+
   suspend fun setIsAlarmStoppedByUser(value:Boolean) {
     try {
       this.alarmStopByUserSemaphore.acquire()
-      this.isAlarmStoppedByUser=value
+      context.get()!!.dataStore.edit { settings ->
+        settings[keyIsAlarmStoppedByUser]=value
+      }
     } catch (e: Exception) {
       Log.d("Error from setIsAlarmStoppedByUser", e.toString())
     } finally {
@@ -95,10 +102,11 @@ class StateSingleton private constructor() {
   suspend fun getIsAlarmStoppedByUser():Boolean {
     try {
       this.alarmStopByUserSemaphore.acquire()
-      return this.isAlarmStoppedByUser
+      val result:Preferences= context.get()!!.dataStore.data.first()
+      return result[keyIsAlarmStoppedByUser] ?: false
     } catch (e: Exception) {
       Log.d("Error from getIsAlarmStoppedByUser", e.toString())
-      return this.isItSafeToStopAlarm
+      return true
     } finally {
       this.alarmStopByUserSemaphore.release()
     }
@@ -142,7 +150,7 @@ class StateSingleton private constructor() {
 
   }
   @SuppressLint("MissingPermission")
-  suspend fun startAlarm(triggerTime:Double,context:Context?){
+  suspend fun startAlarm(triggerTime:Double){
     try {
       val convertedTriggerTime = triggerTime.toLong()
       this.setAlarmTime(triggerTime)
@@ -152,12 +160,12 @@ class StateSingleton private constructor() {
           val alarmClockInfo =
             AlarmClockInfo(System.currentTimeMillis() + convertedTriggerTime, null)
           val startAlarmIntent = Intent(
-            context ?: this.reactContext,
+            context.get()!!,
             BackgroundAlarmReceiver::class.java
           )
-          startAlarmIntent.setAction(StateSingleton.getInstance().ACTION_START_ALARM_MANAGER)
+          startAlarmIntent.setAction(Names().ACTION_START_ALARM_MANAGER)
           val pendingIntent = PendingIntent.getBroadcast(
-            context ?: this.reactContext,
+            context.get()!!,
             0,
             startAlarmIntent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
@@ -174,7 +182,7 @@ class StateSingleton private constructor() {
     }
   }
   private fun getAlarmManager():AlarmManager{
-    val alarmManager=this.reactContext!!.getSystemService(AlarmManager::class.java)
+    val alarmManager=this.context.get()!!.getSystemService(AlarmManager::class.java)
     return alarmManager
   }
   suspend fun stopAlarm(context:Context?, promise: Promise){
@@ -182,11 +190,11 @@ class StateSingleton private constructor() {
       this.setIsAlarmStoppedByUser(true)
       if(getisItSafeToStopAlarm()){
         val startAlarmIntent = Intent(
-          context ?: this.reactContext,
+          this.context.get()!!,
           BackgroundAlarmReceiver::class.java
         )
         val pendingIntent = PendingIntent.getBroadcast(
-          context ?: this.reactContext,
+          this.context.get()!!,
           0,
           startAlarmIntent,
           PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
@@ -208,8 +216,8 @@ class StateSingleton private constructor() {
   }
   fun sendStopBroadcast() {
     try {
-      val stopIntent= Intent(this.ACTION_STOP_SERVICE)
-      this.reactContext!!.sendBroadcast(stopIntent)
+      val stopIntent= Intent(Names().ACTION_STOP_SERVICE)
+      this.context.get()!!.sendBroadcast(stopIntent)
     } catch (e: Exception) {
       Log.d("Error Send Stop Broadcast",e.toString())
     }
@@ -217,52 +225,45 @@ class StateSingleton private constructor() {
   @SuppressLint("ApplySharedPref")
   suspend fun setIsBackgroundServiceRunning(value: Boolean, promise: Promise?) {
     try {
-      try {
-        println("Lock acquired")
-        isBackgroundServiceRunningSemaphore.acquire()
-        this.isBackgroundServiceRunning = value
-        promise?.resolve(null)
-      } finally {
-        isBackgroundServiceRunningSemaphore.release()
+
+      isBackgroundServiceRunningSemaphore.acquire()
+      println("Lock acquired")
+      context.get()!!.dataStore.edit { settings ->
+        settings[keyIsBackgroundServiceRunning]=value
+        println("Value of setting IsBackgroundServiceRunning ${settings[keyIsBackgroundServiceRunning]}")
       }
-    } catch (e: InterruptedException) {
+      promise?.resolve(null)
+    } catch (e:Exception) {
       promise?.reject("Error inSetIsBackgroundServiceRunning",e.toString())
       Thread.currentThread().interrupt()
-    }
-  }
-
-  fun listRunningServices():String {
-      val activityManager =
-        this.reactContext!!.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-      val runningServices = activityManager.getRunningServices(Int.MAX_VALUE)
-
-      val services = runningServices
-        .filter { it.service.packageName == this.reactContext!!.packageName }
-        .map { it.service.className }
-
-      return services.toString()
-  }
-  suspend fun isBackgroundServiceRunning(promise:Promise) {
-    try {
-      try {
-        isBackgroundServiceRunningSemaphore.acquire()
-        println("Lock acquired")
-        promise.resolve(this.isBackgroundServiceRunning)
-      } finally {
+    }finally {
         isBackgroundServiceRunningSemaphore.release()
-      }
-    } catch (e: InterruptedException) {
-      Thread.currentThread().interrupt()
     }
-
   }
-  fun listRunningServices(context: Context):String {
+
+  suspend fun isBackgroundServiceRunning(promise:Promise?=null):Boolean {
     try {
-      val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        isBackgroundServiceRunningSemaphore.acquire()
+        println("Lock acquired isBackgroundServiceRunningSemaphore")
+        val result:Preferences=  context.get()!!.dataStore.data.first()
+      println("Value of preference ")
+        promise?.resolve(result[keyIsBackgroundServiceRunning] ?: false)
+        println("This is value of isBackgroundServiceRunning ${result[keyIsBackgroundServiceRunning]}")
+        return  result[keyIsBackgroundServiceRunning] ?: false
+      } catch (e: Exception) {
+        promise?.reject("Error from isBackgroundServiceRunning",e)
+        return false
+    } finally {
+      isBackgroundServiceRunningSemaphore.release()
+    }
+  }
+  fun listRunningServices():String {
+    try {
+      val activityManager = context.get()!!.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
       val runningServices = activityManager.getRunningServices(Int.MAX_VALUE)
 
       val services = runningServices
-        .filter { it.service.packageName == context.packageName }
+        .filter { it.service.packageName == context.get()!!.packageName }
         .map { it.service.className }
 
       return services.toString()
@@ -271,9 +272,4 @@ class StateSingleton private constructor() {
       return "Error not able to list service"
     }
   }
-////  fun waitUntilServiceisEmpty(){
-////    while(this.listRunningServices()=="[]"{
-//      Log.d("StateSingletonwaitUntilServiceIsEmpty")
-//    }
-//  }
 }
