@@ -259,6 +259,14 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
     }
   }
 
+  @ReactMethod
+  fun setIsAlarmStoppedByUser(value:Boolean, promise:Promise){
+    CoroutineScope(Dispatchers.Main).launch {
+      StateSingleton.getInstance(reactApplicationContext.applicationContext).setIsAlarmStoppedByUser(value)
+      promise.resolve(null)
+    }
+  }
+
   @Suppress("unused")
   @ReactMethod
   fun setIsBackgroundServiceRunning(value: Boolean, promise: Promise) {
@@ -345,6 +353,14 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
           .releaseStartSemaphore(promise)
       }
     }
+  @Suppress("unused")
+  @ReactMethod
+  fun getAvailablePermits(promise: Promise) {
+    CoroutineScope(Dispatchers.Default).launch {
+      StateSingleton.getInstance(reactApplicationContext.applicationContext)
+        .getStartSemaphoreAvailablePermits(promise)
+    }
+  }
 
     @Suppress("unused")
     @ReactMethod

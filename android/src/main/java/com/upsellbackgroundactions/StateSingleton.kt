@@ -268,6 +268,10 @@ class StateSingleton private constructor(context:Context) {
     startSemaphore.release()
     promise.resolve(null)
   }
+
+  fun  getStartSemaphoreAvailablePermits(promise:Promise){
+    promise.resolve(    startSemaphore.availablePermits)
+  }
   suspend fun acquireAddPrinterSemaphore(promise:Promise){
     addPrinterSemaphore.acquire()
     promise.resolve(null)

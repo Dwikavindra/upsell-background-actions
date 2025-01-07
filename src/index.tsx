@@ -141,6 +141,12 @@ class UpsellBackgroundService {
   async isItSafeToStopAlarm() {
     return await UpsellBackgroundActions.getIsItSafeToStopAlarm();
   }
+  async setIsAlarmStoppedByUser(value: boolean) {
+    return await UpsellBackgroundActions.setIsAlarmStoppedByUser(value);
+  }
+  async getAvailablePermits() {
+    return await UpsellBackgroundActions.getAvailablePermits();
+  }
 }
 const BackgroundService = new UpsellBackgroundService();
 export default BackgroundService;
