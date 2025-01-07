@@ -36,7 +36,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
     return NAME
   }
 
-  private  val SCHEDULE_EXACT_ALARM_REQUEST: Int = 1
+  private val SCHEDULE_EXACT_ALARM_REQUEST: Int = 1
   private var currentServiceIntent: Intent? = null
   private var alarmManager: AlarmManager? = null
   private var alarmPendingIntent: PendingIntent? = null
@@ -44,7 +44,12 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
 
   init {
     val mActivityEventListener = object : BaseActivityEventListener() {
-      override fun onActivityResult(activity: Activity, requestCode: Int, resultCode: Int, intent: Intent?) {
+      override fun onActivityResult(
+        activity: Activity,
+        requestCode: Int,
+        resultCode: Int,
+        intent: Intent?
+      ) {
         if (requestCode == SCHEDULE_EXACT_ALARM_REQUEST) {
           mExactAlarmPromise?.let {
             it.resolve("ACTIVITY_OPENED")
@@ -54,51 +59,57 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
       }
     }
 
-    StateSingleton.getInstance( this.reactApplicationContext.applicationContext)
+    StateSingleton.getInstance(this.reactApplicationContext.applicationContext)
     reactApplicationContext.addActivityEventListener(mActivityEventListener);
-      this.alarmManager = reactApplicationContext.getSystemService(
-        AlarmManager::class.java
-      )
+    this.alarmManager = reactApplicationContext.getSystemService(
+      AlarmManager::class.java
+    )
 
   }
+
   companion object {
     const val NAME = "UpsellBackgroundActions"
   }
 
   @ReactMethod
-  fun setCallBack(callback: Callback){
-    StateSingleton.getInstance( this.reactApplicationContext.applicationContext).setCallBack(callback)
+  fun setCallBack(callback: Callback) {
+    StateSingleton.getInstance(this.reactApplicationContext.applicationContext)
+      .setCallBack(callback)
   }
 
   @ReactMethod
-  fun isIgnoreBatteryOptimization(promise:Promise){
+  fun isIgnoreBatteryOptimization(promise: Promise) {
     val packageName: String = reactApplicationContext.packageName
     val pm = reactApplicationContext.getSystemService(Context.POWER_SERVICE) as PowerManager
     promise.resolve(pm.isIgnoringBatteryOptimizations(packageName))
 
   }
+
   @SuppressLint("BatteryLife")
   @ReactMethod
-  fun requestIgnoreBatteryOptmization(promise:Promise){
+  fun requestIgnoreBatteryOptmization(promise: Promise) {
     val intent = Intent()
     intent.setAction(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
     intent.setData(Uri.parse("package:" + reactApplicationContext.packageName));
     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-    startActivity(reactApplicationContext,intent,null)
+    startActivity(reactApplicationContext, intent, null)
     promise.resolve(null)
   }
+
   @ReactMethod
-  fun requestActionIgnoreBatteryOptimizationSettings(promise:Promise){
+  fun requestActionIgnoreBatteryOptimizationSettings(promise: Promise) {
     val intent = Intent()
     intent.setAction(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
-    startActivity(reactApplicationContext,intent,null)
+    startActivity(reactApplicationContext, intent, null)
     promise.resolve(null)
   }
+
   @SuppressLint("ServiceCast")
   @ReactMethod
   fun listRunningServices(promise: Promise) {
     try {
-      val activityManager = reactApplicationContext.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+      val activityManager =
+        reactApplicationContext.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
       val runningServices = activityManager.getRunningServices(Int.MAX_VALUE)
 
       val services = runningServices
@@ -115,26 +126,26 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
   @ReactMethod
   fun start(options: ReadableMap, triggerTime: Double, promise: Promise) {
 
-    CoroutineScope(Dispatchers.Main).launch{
+    CoroutineScope(Dispatchers.Main).launch {
       try {
         // Stop any other inten
 
         val bgOptions = BackgroundTaskOptions(reactApplicationContext, options)
         currentServiceIntent = Intent(reactApplicationContext, RNBackgroundActionsTask::class.java)
-        val state=StateSingleton.getInstance( this@UpsellBackgroundActionsModule.reactApplicationContext.applicationContext)
+        val state =
+          StateSingleton.getInstance(this@UpsellBackgroundActionsModule.reactApplicationContext.applicationContext)
         state.setCurrentServiceIntent(currentServiceIntent!!)
         state.setBGOptions(bgOptions)
         currentServiceIntent!!.putExtras(bgOptions.extras!!)
         state.setIsAlarmStoppedByUser(false)
         state.startAlarm(triggerTime)
-        state.setIsBackgroundServiceRunning(true,null)
+        state.setIsBackgroundServiceRunning(true, null)
         reactApplicationContext.startService(currentServiceIntent)
       } catch (e: java.lang.Exception) {
         promise.reject(e)
       }
     }
-    }
-
+  }
 
 
   @Suppress("unused")
@@ -145,6 +156,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
     }
     promise.resolve(false)
   }
+
   @Suppress("unused")
   @RequiresApi(api = Build.VERSION_CODES.S)
   @ReactMethod
@@ -183,6 +195,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
       mExactAlarmPromise = null
     }
   }
+
   @Suppress("unused")
   @ReactMethod
   fun stop(promise: Promise) {
@@ -200,12 +213,16 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
       promise.reject(e)
     }
   }
+
   @Suppress("unused")
   @ReactMethod
   fun getIsItSafeToStopAlarm(promise: Promise) {
     CoroutineScope(Dispatchers.IO).launch {
       try {
-        val value= async { StateSingleton.getInstance( this@UpsellBackgroundActionsModule.reactApplicationContext.applicationContext).getisItSafeToStopAlarm() }
+        val value = async {
+          StateSingleton.getInstance(this@UpsellBackgroundActionsModule.reactApplicationContext.applicationContext)
+            .getisItSafeToStopAlarm()
+        }
         promise.resolve(value.await())
       } catch (e: java.lang.Exception) {
         promise.reject(e)
@@ -213,6 +230,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
     }
 
   }
+
   @Suppress("unused")
   @ReactMethod
   fun updateNotification(options: ReadableMap, promise: Promise) {
@@ -231,26 +249,31 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
     }
     promise.resolve(null)
   }
+
   @Suppress("unused")
   @ReactMethod
   fun isBackgroundServiceRunning(promise: Promise) {
     CoroutineScope(Dispatchers.Default).launch {
-      StateSingleton.getInstance( this@UpsellBackgroundActionsModule.reactApplicationContext.applicationContext).isBackgroundServiceRunning(promise)
+      StateSingleton.getInstance(this@UpsellBackgroundActionsModule.reactApplicationContext.applicationContext)
+        .isBackgroundServiceRunning(promise)
     }
   }
+
   @Suppress("unused")
   @ReactMethod
-  fun setIsBackgroundServiceRunning(value:Boolean,promise: Promise) {
+  fun setIsBackgroundServiceRunning(value: Boolean, promise: Promise) {
     CoroutineScope(Dispatchers.Default).launch {
-      StateSingleton.getInstance( this@UpsellBackgroundActionsModule.reactApplicationContext.applicationContext).setIsBackgroundServiceRunning(value,promise)
+      StateSingleton.getInstance(this@UpsellBackgroundActionsModule.reactApplicationContext.applicationContext)
+        .setIsBackgroundServiceRunning(value, promise)
     }
 
   }
+
   @Suppress("unused")
   @ReactMethod
   fun sendStopBroadcast(promise: Promise) {
     try {
-      val stopIntent= Intent(Names().ACTION_STOP_SERVICE)
+      val stopIntent = Intent(Names().ACTION_STOP_SERVICE)
       reactApplicationContext.sendBroadcast(stopIntent)
       promise.resolve(null)
     } catch (e: Exception) {
@@ -262,7 +285,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
   @SuppressLint("MissingPermission")
   @Suppress("unused")
   @ReactMethod
-  fun setAlarm(triggerTime: Double,promise: Promise) {
+  fun setAlarm(triggerTime: Double, promise: Promise) {
     try {
       val convertedTriggerTime = triggerTime.toLong()
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -282,9 +305,13 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
             startAlarmIntent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
           )
-          StateSingleton.getInstance( this.reactApplicationContext.applicationContext).setPendingIntent(pendingIntent)
+          StateSingleton.getInstance(this.reactApplicationContext.applicationContext)
+            .setPendingIntent(pendingIntent)
           this@UpsellBackgroundActionsModule.alarmPendingIntent = pendingIntent
-          this@UpsellBackgroundActionsModule.alarmManager!!.setAlarmClock(alarmClockInfo, pendingIntent)
+          this@UpsellBackgroundActionsModule.alarmManager!!.setAlarmClock(
+            alarmClockInfo,
+            pendingIntent
+          )
           println("inside start function Passed set Alarm Clock")
         } else {
           throw java.lang.Exception("Alarm manager is null")
@@ -301,50 +328,61 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
   }
 
 
-
   @Suppress("unused")
   @ReactMethod
   fun lock(promise: Promise) {
     CoroutineScope(Dispatchers.Default).launch {
-        StateSingleton.getInstance(reactApplicationContext.applicationContext).acquireStartSemaphore(promise)
-  }
-
-  @Suppress("unused")
-  @ReactMethod
-  fun unlock(promise: Promise) {
-    CoroutineScope(Dispatchers.Default).launch {
-        StateSingleton.getInstance(reactApplicationContext.applicationContext).releaseStartSemaphore(promise)
-    }
-  }
-  @Suppress("unused")
-  @ReactMethod
-  fun lockAddPrinterSemaphore(promise: Promise) {
-    CoroutineScope(Dispatchers.Main).launch {
-        StateSingleton.getInstance(reactApplicationContext.applicationContext).acquireAddPrinterSemaphore(promise)
+      StateSingleton.getInstance(reactApplicationContext.applicationContext)
+        .acquireStartSemaphore(promise)
     }
 
-  }
-
-  @Suppress("unused")
-  @ReactMethod
-  fun unlockAddPrinterSemaphore(promise: Promise) {
-    CoroutineScope(Dispatchers.Main).launch {
-       StateSingleton.getInstance(reactApplicationContext.applicationContext).acquireAddPrinterSemaphore(promise)
-    }
-  }
-  @Suppress("unused")
-  @ReactMethod
-  fun stopAlarm(promise:Promise){
-    CoroutineScope(Dispatchers.Main).launch {
-      StateSingleton.getInstance( this@UpsellBackgroundActionsModule.reactApplicationContext.applicationContext).stopAlarm(this@UpsellBackgroundActionsModule.reactApplicationContext,promise)
+    @Suppress("unused")
+    @ReactMethod
+    fun unlock(promise: Promise) {
+      CoroutineScope(Dispatchers.Default).launch {
+        StateSingleton.getInstance(reactApplicationContext.applicationContext)
+          .releaseStartSemaphore(promise)
+      }
     }
 
-  }
-  @ReactMethod
-  //TODO: DELETE NOT USED IN THE FUTURE AT ALL
-  fun getAlarmPermissionStatus(promise: Promise) {
-    val optionSharedPreference =
-      reactApplicationContext.getSharedPreferences(Names().SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
-    promise.resolve(optionSharedPreference.getBoolean("ALARM_PERMISSION_GRANTED", false))
+    @Suppress("unused")
+    @ReactMethod
+    fun lockAddPrinterSemaphore(promise: Promise) {
+      CoroutineScope(Dispatchers.Main).launch {
+        StateSingleton.getInstance(reactApplicationContext.applicationContext)
+          .acquireAddPrinterSemaphore(promise)
+      }
+
+    }
+
+    @Suppress("unused")
+    @ReactMethod
+    fun unlockAddPrinterSemaphore(promise: Promise) {
+      CoroutineScope(Dispatchers.Main).launch {
+        StateSingleton.getInstance(reactApplicationContext.applicationContext)
+          .acquireAddPrinterSemaphore(promise)
+      }
+    }
+
+    @Suppress("unused")
+    @ReactMethod
+    fun stopAlarm(promise: Promise) {
+      CoroutineScope(Dispatchers.Main).launch {
+        StateSingleton.getInstance(this@UpsellBackgroundActionsModule.reactApplicationContext.applicationContext)
+          .stopAlarm(this@UpsellBackgroundActionsModule.reactApplicationContext, promise)
+      }
+
+    }
+
+    @ReactMethod
+    //TODO: DELETE NOT USED IN THE FUTURE AT ALL
+    fun getAlarmPermissionStatus(promise: Promise) {
+      val optionSharedPreference =
+        reactApplicationContext.getSharedPreferences(
+          Names().SHARED_PREFERENCES_KEY,
+          Context.MODE_PRIVATE
+        )
+      promise.resolve(optionSharedPreference.getBoolean("ALARM_PERMISSION_GRANTED", false))
+    }
   }
 }
