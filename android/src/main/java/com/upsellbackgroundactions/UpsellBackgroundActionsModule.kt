@@ -335,6 +335,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
       StateSingleton.getInstance(reactApplicationContext.applicationContext)
         .acquireStartSemaphore(promise)
     }
+  }
 
     @Suppress("unused")
     @ReactMethod
@@ -384,5 +385,4 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
         )
       promise.resolve(optionSharedPreference.getBoolean("ALARM_PERMISSION_GRANTED", false))
     }
-  }
 }
