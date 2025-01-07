@@ -41,8 +41,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
   private var alarmManager: AlarmManager? = null
   private var alarmPendingIntent: PendingIntent? = null
   private var mExactAlarmPromise: Promise? = null
-  private val semaphore=Semaphore(1)
-  private val addPrinterSemaphore=Semaphore(1)
+
   init {
     val mActivityEventListener = object : BaseActivityEventListener() {
       override fun onActivityResult(activity: Activity, requestCode: Int, resultCode: Int, intent: Intent?) {
@@ -307,41 +306,21 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
   @ReactMethod
   fun lock(promise: Promise) {
     CoroutineScope(Dispatchers.Default).launch {
-      try {
-        this@UpsellBackgroundActionsModule.semaphore.acquire()
-        promise.resolve(null)
-      } catch (e: Exception) {
-        promise.reject(e)
-
-      }
-    }
-
+        StateSingleton.getInstance(reactApplicationContext.applicationContext).acquireStartSemaphore(promise)
   }
 
   @Suppress("unused")
   @ReactMethod
   fun unlock(promise: Promise) {
     CoroutineScope(Dispatchers.Default).launch {
-      try {
-        this@UpsellBackgroundActionsModule.semaphore.release()
-        promise.resolve(null)
-      } catch (e: Exception) {
-        promise.reject(e)
-
-      }
+        StateSingleton.getInstance(reactApplicationContext.applicationContext).releaseStartSemaphore(promise)
     }
   }
   @Suppress("unused")
   @ReactMethod
   fun lockAddPrinterSemaphore(promise: Promise) {
     CoroutineScope(Dispatchers.Main).launch {
-      try {
-        this@UpsellBackgroundActionsModule.addPrinterSemaphore.acquire()
-        promise.resolve(null)
-      } catch (e: Exception) {
-        promise.reject(e)
-
-      }
+        StateSingleton.getInstance(reactApplicationContext.applicationContext).acquireAddPrinterSemaphore(promise)
     }
 
   }
@@ -350,13 +329,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
   @ReactMethod
   fun unlockAddPrinterSemaphore(promise: Promise) {
     CoroutineScope(Dispatchers.Main).launch {
-      try {
-        this@UpsellBackgroundActionsModule.addPrinterSemaphore.release()
-        promise.resolve(null)
-      } catch (e: Exception) {
-        promise.reject(e)
-
-      }
+       StateSingleton.getInstance(reactApplicationContext.applicationContext).acquireAddPrinterSemaphore(promise)
     }
   }
   @Suppress("unused")

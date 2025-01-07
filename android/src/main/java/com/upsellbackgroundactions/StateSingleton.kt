@@ -37,6 +37,8 @@ class StateSingleton private constructor(context:Context) {
   private val safeToStopAlarmSemaphore= Semaphore(1)
   private val alarmStopByUserSemaphore= Semaphore(1)
   private val alarmTimeSemaphore= Semaphore(1)
+  private val startSemaphore=Semaphore(1)
+  private val addPrinterSemaphore=Semaphore(1)
   private val isBackgroundServiceRunningSemaphore= Semaphore(1)
   private val alarmContextSemaphore= Semaphore(1)
   companion object {
@@ -257,6 +259,24 @@ class StateSingleton private constructor(context:Context) {
       isBackgroundServiceRunningSemaphore.release()
     }
   }
+  suspend fun acquireStartSemaphore(promise:Promise){
+      startSemaphore.acquire()
+      promise.resolve(null)
+  }
+
+  fun  releaseStartSemaphore(promise:Promise){
+    startSemaphore.release()
+    promise.resolve(null)
+  }
+  suspend fun acquireAddPrinterSemaphore(promise:Promise){
+    addPrinterSemaphore.acquire()
+    promise.resolve(null)
+  }
+  fun  releaseAddPrinterSemaphore(promise:Promise){
+    addPrinterSemaphore.release()
+    promise.resolve(null)
+  }
+
   fun listRunningServices():String {
     try {
       val activityManager = context.get()!!.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
