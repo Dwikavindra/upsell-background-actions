@@ -17,6 +17,7 @@ class BackgroundAlarmReceiver : BroadcastReceiver() {
       println("This is intent action" + intent.action)
       if (Names().ACTION_START_ALARM_MANAGER== intent.action) {
         if(StateSingleton.getInstance(context).getIsAlarmStoppedByUser()){
+          StateSingleton.getInstance(context ).setIsBackgroundServiceRunning(false,null)//esnure while loop is stopped might as well be
           //ensure truly that alarm is stopped the method above safe to stop alarm is still needed if we need to cancel the alarm immediately,
           // however in the case that it fails this should stop it regardless
           // this will only be true if the user activates it from the ui not when restarting, when restarting via this receiver  the value is always false
@@ -33,7 +34,7 @@ class BackgroundAlarmReceiver : BroadcastReceiver() {
               StateSingleton.getInstance(context).setIsBackgroundServiceRunning(false, null)
               Log.d("BackgroundAlarmReceiver", "Passed setIsBackgroundServiceRunning false")
               currentServiceIntent.putExtras(StateSingleton.getInstance(context).getBGOptions().extras!!)
-              Thread.sleep(5000)
+              Thread.sleep(20000)
               StateSingleton.getInstance(context).setIsBackgroundServiceRunning(true, null)
               val timeValue= StateSingleton.getInstance(context).getAlarmTime()
               StateSingleton.getInstance(context).startAlarm(timeValue)

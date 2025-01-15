@@ -144,8 +144,8 @@ class UpsellBackgroundService {
   async setIsAlarmStoppedByUser(value: boolean) {
     return await UpsellBackgroundActions.setIsAlarmStoppedByUser(value);
   }
-  async getAvailablePermits() {
-    return await UpsellBackgroundActions.getAvailablePermits();
+  async interruptQueuedThread() {
+    return await UpsellBackgroundActions.interruptQueuedThread();
   }
 }
 const BackgroundService = new UpsellBackgroundService();

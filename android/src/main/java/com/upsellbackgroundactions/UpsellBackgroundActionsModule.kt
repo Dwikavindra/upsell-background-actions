@@ -345,6 +345,15 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
     }
   }
 
+  @Suppress("unused")
+  @ReactMethod
+  fun interruptQueuedThread(promise: Promise) {
+    CoroutineScope(Dispatchers.Default).launch {
+      StateSingleton.getInstance(reactApplicationContext.applicationContext)
+        interruptQueuedThread(promise)
+    }
+  }
+
     @Suppress("unused")
     @ReactMethod
     fun unlock(promise: Promise) {
@@ -353,14 +362,8 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
           .releaseStartSemaphore(promise)
       }
     }
-  @Suppress("unused")
-  @ReactMethod
-  fun getAvailablePermits(promise: Promise) {
-    CoroutineScope(Dispatchers.Default).launch {
-      StateSingleton.getInstance(reactApplicationContext.applicationContext)
-        .getStartSemaphoreAvailablePermits(promise)
-    }
-  }
+
+
 
     @Suppress("unused")
     @ReactMethod

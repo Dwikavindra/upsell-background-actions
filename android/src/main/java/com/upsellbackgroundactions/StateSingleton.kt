@@ -16,11 +16,14 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
 import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.Promise
+import kotlinx.coroutines.Dispatchers
 
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.sync.Semaphore
+
+
 
 import java.lang.ref.WeakReference
+import java.util.concurrent.Semaphore
 
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
@@ -41,6 +44,7 @@ class StateSingleton private constructor(context:Context) {
   private val addPrinterSemaphore=Semaphore(1)
   private val isBackgroundServiceRunningSemaphore= Semaphore(1)
   private val alarmContextSemaphore= Semaphore(1)
+  private val startSemaphoreRelease=Semaphore(1)
   companion object {
 
 
@@ -58,6 +62,7 @@ class StateSingleton private constructor(context:Context) {
   fun getCallBack():Callback?{
     return this.functionCallBack
   }
+
   suspend fun getisItSafeToStopAlarm():Boolean {
     try {
       this.safeToStopAlarmSemaphore.acquire()
@@ -74,7 +79,7 @@ class StateSingleton private constructor(context:Context) {
   suspend fun getContext():Context{
     return this.context.get()!!
   }
-
+  @Suppress("withContext")
   suspend fun setisItSafeToStopAlarm(value:Boolean) {
     try {
       this.safeToStopAlarmSemaphore.acquire()
@@ -260,21 +265,50 @@ class StateSingleton private constructor(context:Context) {
     }
   }
   suspend fun acquireStartSemaphore(promise:Promise){
-      startSemaphore.acquire()
-      promise.resolve(null)
+
+      try{
+        startSemaphore.acquire()
+        promise.resolve(null)
+      }catch (e:InterruptedException){
+        promise.reject(e)
+      }
+
+
   }
 
-  fun  releaseStartSemaphore(promise:Promise){
-    startSemaphore.release()
-    promise.resolve(null)
+ suspend fun  releaseStartSemaphore(promise:Promise){
+   try{
+     startSemaphoreRelease.acquire()
+     if(startSemaphore.availablePermits()==1){
+       startSemaphore.release()
+       promise.resolve(null)
+     }
+     promise.resolve("Not Safe to release")
+
+   }finally {
+       startSemaphoreRelease.release()
+   }
+  }
+  @Suppress("UNCHECKED_CAST")
+  fun intteruptAllQueuedStartSemaphore(promise:Promise){
+    try{
+      val method= Semaphore::class.java.getDeclaredMethod("getQueuedThreads")
+      method.isAccessible = true // Bypass access control checks
+      val result : Collection<Thread> = method.invoke(startSemaphore) as Collection<Thread>
+      for (thread in result) {
+        thread.interrupt()
+      }
+    }catch (e:Exception){
+      promise.reject(e)
+    }
+
   }
 
-  fun  getStartSemaphoreAvailablePermits(promise:Promise){
-    promise.resolve(    startSemaphore.availablePermits)
-  }
   suspend fun acquireAddPrinterSemaphore(promise:Promise){
-    addPrinterSemaphore.acquire()
-    promise.resolve(null)
+      addPrinterSemaphore.acquire()
+      promise.resolve(null)
+
+
   }
   fun  releaseAddPrinterSemaphore(promise:Promise){
     addPrinterSemaphore.release()
