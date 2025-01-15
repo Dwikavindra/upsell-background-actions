@@ -36,8 +36,6 @@ class BackgroundAlarmReceiver : BroadcastReceiver() {
               currentServiceIntent.putExtras(StateSingleton.getInstance(context).getBGOptions().extras!!)
               Thread.sleep(20000)
               StateSingleton.getInstance(context).setIsBackgroundServiceRunning(true, null)
-              val timeValue= StateSingleton.getInstance(context).getAlarmTime()
-              StateSingleton.getInstance(context).startAlarm(timeValue)
               context.startService(currentServiceIntent)
               StateSingleton.getInstance(context).setisItSafeToStopAlarm(true)
               // 1. Shut down the while loop

@@ -137,8 +137,8 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
         state.setCurrentServiceIntent(currentServiceIntent!!)
         state.setBGOptions(bgOptions)
         currentServiceIntent!!.putExtras(bgOptions.extras!!)
+        state.setAlarmTime(triggerTime)
         state.setIsAlarmStoppedByUser(false)
-        state.startAlarm(triggerTime)
         state.setIsBackgroundServiceRunning(true, null)
         reactApplicationContext.startService(currentServiceIntent)
       } catch (e: java.lang.Exception) {
@@ -349,8 +349,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
   @ReactMethod
   fun interruptQueuedThread(promise: Promise) {
     CoroutineScope(Dispatchers.Default).launch {
-      StateSingleton.getInstance(reactApplicationContext.applicationContext)
-        interruptQueuedThread(promise)
+      StateSingleton.getInstance(reactApplicationContext.applicationContext).interruptAllQueuedStartSemaphore(promise)
     }
   }
 

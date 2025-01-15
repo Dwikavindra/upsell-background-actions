@@ -12,6 +12,7 @@ import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
 import com.facebook.react.bridge.Callback
@@ -37,6 +38,7 @@ class StateSingleton private constructor(context:Context) {
   private val keyIsBackgroundServiceRunning = booleanPreferencesKey("isBackgroundServiceRunning")
   private val keyIsItSafeToStopAlarm= booleanPreferencesKey("isItSafeToStopAlarm")
   private val keyIsAlarmStoppedByUser= booleanPreferencesKey("isAlarmStoppedByUser")
+  private val keyAlarmTime= doublePreferencesKey("keyAlarmTime")
   private val safeToStopAlarmSemaphore= Semaphore(1)
   private val alarmStopByUserSemaphore= Semaphore(1)
   private val alarmTimeSemaphore= Semaphore(1)
@@ -121,7 +123,10 @@ class StateSingleton private constructor(context:Context) {
   suspend fun setAlarmTime(value: Double) {
     try {
       this.alarmTimeSemaphore.acquire()
-      this.alarmTime=value
+      context.get()!!.dataStore.edit { settings ->
+        settings[keyAlarmTime]=value
+        println("Value of setting IsBackgroundServiceRunning ${settings[keyIsBackgroundServiceRunning]}")
+      }
     } catch (e: Exception) {
       Log.d("Error from alarmTimeSemaphore", e.toString())
     } finally {
@@ -131,7 +136,8 @@ class StateSingleton private constructor(context:Context) {
   suspend fun getAlarmTime():Double {
     try {
       this.alarmTimeSemaphore.acquire()
-      return this.alarmTime ?: 300000.0
+      val result:Preferences= context.get()!!.dataStore.data.first()
+      return result[keyAlarmTime] ?: 300000.0
     } catch (e: Exception) {
       Log.d("Error from alarmTimeSemaphore", e.toString())
       return this.alarmTime ?: 300000.0
@@ -279,7 +285,7 @@ class StateSingleton private constructor(context:Context) {
  suspend fun  releaseStartSemaphore(promise:Promise){
    try{
      startSemaphoreRelease.acquire()
-     if(startSemaphore.availablePermits()==1){
+     if(startSemaphore.availablePermits()==0){
        startSemaphore.release()
        promise.resolve(null)
      }
@@ -290,7 +296,7 @@ class StateSingleton private constructor(context:Context) {
    }
   }
   @Suppress("UNCHECKED_CAST")
-  fun intteruptAllQueuedStartSemaphore(promise:Promise){
+  fun interruptAllQueuedStartSemaphore(promise:Promise){
     try{
       val method= Semaphore::class.java.getDeclaredMethod("getQueuedThreads")
       method.isAccessible = true // Bypass access control checks
@@ -298,6 +304,7 @@ class StateSingleton private constructor(context:Context) {
       for (thread in result) {
         thread.interrupt()
       }
+      promise.resolve(null)
     }catch (e:Exception){
       promise.reject(e)
     }

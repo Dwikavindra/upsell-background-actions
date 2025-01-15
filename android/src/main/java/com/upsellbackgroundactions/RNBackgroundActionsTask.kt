@@ -55,6 +55,7 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
 
   @SuppressLint("ForegroundServiceType", "UnspecifiedRegisterReceiverFlag")
   override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
+
     val extras = intent.extras
     requireNotNull(extras) { "Extras cannot be null" }
     val bgOptions = BackgroundTaskOptions(extras)
@@ -75,6 +76,7 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
         .createWifiLock(WifiManager.WIFI_MODE_FULL, "mylock")
       wifiLock!!.acquire()
     }
+    val state= StateSingleton.getInstance(this)
 
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
@@ -82,6 +84,10 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
 
     }else{
       startForeground(Names().SERVICE_NOTIFICATION_ID,notification)
+    }
+    CoroutineScope(Dispatchers.IO).launch{
+      state.startAlarm(state.getAlarmTime())
+
     }
 
     // Register the broadcast receiver to listen for the stop action

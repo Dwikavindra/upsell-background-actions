@@ -4,6 +4,7 @@ import BackgroundService from 'upsell-background-actions';
 
 export default function App() {
   const [result, setResult] = useState<number | undefined>();
+  let process = 0;
   const sleep = (time: any) =>
     new Promise<void>((resolve) => setTimeout(() => resolve(), time));
 
@@ -19,10 +20,10 @@ export default function App() {
         await BackgroundService.stopAlarm();
       } catch (error) {
         const receivedError: Error = error as Error;
-        if (!receivedError.message.includes('Pending Intent not Found')) {
-          console.log('This is error', receivedError);
+        if (receivedError.message.includes('Pending Intent not Found')) {
+          console.log('This is error Pending Intent', receivedError);
         }
-        if (!receivedError.message.includes('Not Safe to stop Alarm')) {
+        if (receivedError.message.includes('Not Safe to stop Alarm')) {
           console.log('This is error', receivedError);
         }
       }
@@ -31,10 +32,10 @@ export default function App() {
   };
   const veryIntensiveTask = async (taskDataArguments: any) => {
     // Example of an infinite loop task
-    const { delay } = taskDataArguments;
-    console.log('Here in intensive task');
-    await BackgroundService.lock();
-    await new Promise(async () => {
+    try {
+      console.log('Here in intensive task');
+      process = process + 1;
+      await BackgroundService.lock();
       for (
         let i = 0;
         await BackgroundService.isBackgroundServiceRunning();
@@ -44,27 +45,22 @@ export default function App() {
           'This is await isBackgroundServiceRunning',
           await BackgroundService.isBackgroundServiceRunning()
         );
-        console.log('Very Intensive Task Started', i);
-        await sleep(delay);
+        console.log('Number', i);
+        await sleep(1000);
       }
-      console.log('IsBackgroundServiceRunningis false');
-      try {
-        console.log(
-          'This is is list await ',
-          await BackgroundService.listRunningServices()
-        );
-        while ((await BackgroundService.listRunningServices()) !== '[]') {
-          console.log('Awaiting for running Services to be 0');
-          await BackgroundService.sendStopBroadcast();
-          await sleep(1000);
-        }
-        console.log('Passed while loop');
-        await BackgroundService.unlock();
-        console.log('Passed unlock');
-      } catch (error) {
-        console.log(error);
-      }
-    });
+    } catch (e) {
+      console.log('Error from intensive', e);
+    } finally {
+      console.log(
+        'This is is list await ',
+        await BackgroundService.listRunningServices()
+      );
+      console.log('Passed while loop');
+      await BackgroundService.unlock();
+      console.log('Passed unlock');
+      process = process - 1;
+      console.log('Process after unlock', process);
+    }
   };
 
   const options = {
@@ -142,20 +138,16 @@ export default function App() {
         onPress={async () => {
           try {
             console.log('Here in stop task');
-            while ((await BackgroundService.isItSafeToStopAlarm()) === false) {
-              console.log('Not safe to stop Alarm');
-            }
-            console.log('Safe stopping alarm');
             await stopAlarm();
             console.log('Stopped Alarm');
 
             await BackgroundService.setIsBackgroundServiceRunning(false);
-            console.log('Here after setIs in StopTask');
-            while ((await BackgroundService.listRunningServices()) !== '[]') {
-              console.log('Here in stop Task loop');
-              await BackgroundService.sendStopBroadcast();
-            }
-
+            await BackgroundService.sendStopBroadcast();
+            console.log('sendStopBroadcast');
+            await BackgroundService.interruptQueuedThread();
+            console.log('Pass intteruptThread');
+            await BackgroundService.unlock();
+            console.log('Passed unlock here ');
             console.log('Passed sendStopBroadcast');
           } catch (error) {
             console.log('Error from stop task', error);
