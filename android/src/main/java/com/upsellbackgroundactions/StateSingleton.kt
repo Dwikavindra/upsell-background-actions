@@ -238,19 +238,16 @@ class StateSingleton private constructor(context:Context) {
   @SuppressLint("ApplySharedPref")
   suspend fun setIsBackgroundServiceRunning(value: Boolean, promise: Promise?) {
     try {
-
-      isBackgroundServiceRunningSemaphore.acquire()
-      println("Lock acquired")
+      println("Here in setIs backgroundServiceRunning ")
       context.get()!!.dataStore.edit { settings ->
         settings[keyIsBackgroundServiceRunning]=value
         println("Value of setting IsBackgroundServiceRunning ${settings[keyIsBackgroundServiceRunning]}")
+        promise?.resolve(null)
       }
-      promise?.resolve(null)
+
     } catch (e:Exception) {
+      println("setIsbackgroundServicerunning exception")
       promise?.reject("Error inSetIsBackgroundServiceRunning",e.toString())
-      Thread.currentThread().interrupt()
-    }finally {
-        isBackgroundServiceRunningSemaphore.release()
     }
   }
 
@@ -283,16 +280,17 @@ class StateSingleton private constructor(context:Context) {
   }
 
  suspend fun  releaseStartSemaphore(promise:Promise){
+   println("In release startSemaphore")
    try{
-     startSemaphoreRelease.acquire()
+     println("This is available permits ${startSemaphoreRelease.availablePermits()}")
      if(startSemaphore.availablePermits()==0){
        startSemaphore.release()
        promise.resolve(null)
      }
      promise.resolve("Not Safe to release")
 
-   }finally {
-       startSemaphoreRelease.release()
+   }catch(e:Exception){
+     promise.reject(e)
    }
   }
   @Suppress("UNCHECKED_CAST")

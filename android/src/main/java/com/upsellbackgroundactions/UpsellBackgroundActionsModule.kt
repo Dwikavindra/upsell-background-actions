@@ -126,7 +126,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
   @ReactMethod
   fun start(options: ReadableMap, triggerTime: Double, promise: Promise) {
 
-    CoroutineScope(Dispatchers.Main).launch {
+    CoroutineScope(Dispatchers.IO).launch {
       try {
         // Stop any other inten
 
@@ -253,7 +253,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
   @Suppress("unused")
   @ReactMethod
   fun isBackgroundServiceRunning(promise: Promise) {
-    CoroutineScope(Dispatchers.Default).launch {
+    CoroutineScope(Dispatchers.IO).launch {
       StateSingleton.getInstance(this@UpsellBackgroundActionsModule.reactApplicationContext.applicationContext)
         .isBackgroundServiceRunning(promise)
     }
@@ -270,7 +270,8 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
   @Suppress("unused")
   @ReactMethod
   fun setIsBackgroundServiceRunning(value: Boolean, promise: Promise) {
-    CoroutineScope(Dispatchers.Default).launch {
+    CoroutineScope(Dispatchers.IO).launch {
+      println("In CourotineScope setIsBackgroundServiceRunnning")
       StateSingleton.getInstance(this@UpsellBackgroundActionsModule.reactApplicationContext.applicationContext)
         .setIsBackgroundServiceRunning(value, promise)
     }
@@ -348,7 +349,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
   @Suppress("unused")
   @ReactMethod
   fun interruptQueuedThread(promise: Promise) {
-    CoroutineScope(Dispatchers.Default).launch {
+    CoroutineScope(Dispatchers.IO).launch {
       StateSingleton.getInstance(reactApplicationContext.applicationContext).interruptAllQueuedStartSemaphore(promise)
     }
   }
@@ -356,7 +357,8 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
     @Suppress("unused")
     @ReactMethod
     fun unlock(promise: Promise) {
-      CoroutineScope(Dispatchers.Default).launch {
+      println("In unlock release startSemaphore")
+      CoroutineScope(Dispatchers.IO).launch {
         StateSingleton.getInstance(reactApplicationContext.applicationContext)
           .releaseStartSemaphore(promise)
       }
@@ -367,7 +369,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
     @Suppress("unused")
     @ReactMethod
     fun lockAddPrinterSemaphore(promise: Promise) {
-      CoroutineScope(Dispatchers.Main).launch {
+      CoroutineScope(Dispatchers.IO).launch {
         StateSingleton.getInstance(reactApplicationContext.applicationContext)
           .acquireAddPrinterSemaphore(promise)
       }
@@ -377,7 +379,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
     @Suppress("unused")
     @ReactMethod
     fun unlockAddPrinterSemaphore(promise: Promise) {
-      CoroutineScope(Dispatchers.Main).launch {
+      CoroutineScope(Dispatchers.IO).launch {
         StateSingleton.getInstance(reactApplicationContext.applicationContext)
           .acquireAddPrinterSemaphore(promise)
       }
@@ -386,7 +388,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
     @Suppress("unused")
     @ReactMethod
     fun stopAlarm(promise: Promise) {
-      CoroutineScope(Dispatchers.Main).launch {
+      CoroutineScope(Dispatchers.IO).launch {
         StateSingleton.getInstance(this@UpsellBackgroundActionsModule.reactApplicationContext.applicationContext)
           .stopAlarm(this@UpsellBackgroundActionsModule.reactApplicationContext, promise)
       }

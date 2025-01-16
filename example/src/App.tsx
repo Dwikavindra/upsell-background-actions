@@ -36,6 +36,7 @@ export default function App() {
       console.log('Here in intensive task');
       process = process + 1;
       await BackgroundService.lock();
+
       for (
         let i = 0;
         await BackgroundService.isBackgroundServiceRunning();
@@ -49,7 +50,11 @@ export default function App() {
         await sleep(1000);
       }
     } catch (e) {
+      const foundError = e as Error;
       console.log('Error from intensive', e);
+      if (foundError.message.includes('InterruptedException')) {
+        return;
+      }
     } finally {
       console.log(
         'This is is list await ',
@@ -114,7 +119,7 @@ export default function App() {
           try {
             console.log('Here');
 
-            BackgroundService.start(veryIntensiveTask, options, 10000);
+            BackgroundService.start(veryIntensiveTask, options, 6000);
             console.log('Here After');
           } catch (error) {
             console.log('This is error', error);
@@ -138,16 +143,22 @@ export default function App() {
         onPress={async () => {
           try {
             console.log('Here in stop task');
-            await stopAlarm();
-            console.log('Stopped Alarm');
+            try {
+              await BackgroundService.stopAlarm();
+            } catch (error) {
+              console.log('error from stopAlarm', error);
+            }
+
+            console.log('Passed Stopped Alarm');
 
             await BackgroundService.setIsBackgroundServiceRunning(false);
+            console.log('Passed setIsBackgroundServiceRunnign');
             await BackgroundService.sendStopBroadcast();
             console.log('sendStopBroadcast');
-            await BackgroundService.interruptQueuedThread();
-            console.log('Pass intteruptThread');
             await BackgroundService.unlock();
             console.log('Passed unlock here ');
+            await BackgroundService.interruptQueuedThread();
+            console.log('Pass intteruptThread');
             console.log('Passed sendStopBroadcast');
           } catch (error) {
             console.log('Error from stop task', error);

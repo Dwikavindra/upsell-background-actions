@@ -113,12 +113,14 @@ class UpsellBackgroundService {
     return await UpsellBackgroundActions.stopAlarm();
   }
   async setIsBackgroundServiceRunning(value: boolean) {
+    console.log('Set Is backgroundServicerunningCalled');
     return await UpsellBackgroundActions.setIsBackgroundServiceRunning(value);
   }
   async lock() {
     return await UpsellBackgroundActions.lock();
   }
   async unlock() {
+    console.log('In release unlock');
     return await UpsellBackgroundActions.unlock();
   }
   //TODO: Remove both later into its own semaphore package
