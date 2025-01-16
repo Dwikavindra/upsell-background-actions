@@ -13,7 +13,7 @@ import java.lang.Thread.State
 
 class BackgroundAlarmReceiver : BroadcastReceiver() {
   override fun onReceive(context: Context, intent: Intent) {
-    CoroutineScope(Dispatchers.Default).launch {
+    CoroutineScope(Dispatchers.IO).launch {
       println("This is intent action" + intent.action)
       if (Names().ACTION_START_ALARM_MANAGER== intent.action) {
         if(StateSingleton.getInstance(context).getIsAlarmStoppedByUser()){

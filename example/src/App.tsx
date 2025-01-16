@@ -52,9 +52,6 @@ export default function App() {
     } catch (e) {
       const foundError = e as Error;
       console.log('Error from intensive', e);
-      if (foundError.message.includes('InterruptedException')) {
-        return;
-      }
     } finally {
       console.log(
         'This is is list await ',
@@ -118,8 +115,9 @@ export default function App() {
         onPress={async () => {
           try {
             console.log('Here');
-
-            BackgroundService.start(veryIntensiveTask, options, 6000);
+            // This one ran for n times should still eventually close and run
+            // previous error causeed by Dispatchers.Main and Default
+            BackgroundService.start(veryIntensiveTask, options, 30000);
             console.log('Here After');
           } catch (error) {
             console.log('This is error', error);
