@@ -261,7 +261,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
 
   @ReactMethod
   fun setIsAlarmStoppedByUser(value:Boolean, promise:Promise){
-    CoroutineScope(Dispatchers.Main).launch {
+    CoroutineScope(Dispatchers.IO).launch {
       StateSingleton.getInstance(reactApplicationContext.applicationContext).setIsAlarmStoppedByUser(value)
       promise.resolve(null)
     }
@@ -340,7 +340,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
   @Suppress("unused")
   @ReactMethod
   fun lock(promise: Promise) {
-    CoroutineScope(Dispatchers.Default).launch {
+    CoroutineScope(Dispatchers.IO).launch {
       StateSingleton.getInstance(reactApplicationContext.applicationContext)
         .acquireStartSemaphore(promise)
     }

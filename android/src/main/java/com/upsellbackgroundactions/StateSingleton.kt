@@ -227,6 +227,27 @@ class StateSingleton private constructor(context:Context) {
       promise.reject(e)
     }
   }
+  fun stopAlarmInsideService(){// would be paired with start alarm to ensure alarm is stopped first
+    try{
+        val startAlarmIntent = Intent(
+          this.context.get()!!,
+          BackgroundAlarmReceiver::class.java
+        )
+        val pendingIntent = PendingIntent.getBroadcast(
+          this.context.get()!!,
+          0,
+          startAlarmIntent,
+          PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+        )
+        if(pendingIntent===null){
+          throw Exception("Pending Intent not Found")
+        }
+        getAlarmManager().cancel(pendingIntent)
+
+    }catch (e:Exception){
+     println("StopAlarmInsideServiceError ${e}")
+    }
+  }
   fun sendStopBroadcast() {
     try {
       val stopIntent= Intent(Names().ACTION_STOP_SERVICE)
@@ -238,6 +259,7 @@ class StateSingleton private constructor(context:Context) {
   @SuppressLint("ApplySharedPref")
   suspend fun setIsBackgroundServiceRunning(value: Boolean, promise: Promise?) {
     try {
+      isBackgroundServiceRunningSemaphore.acquire()
       println("Here in setIs backgroundServiceRunning ")
       context.get()!!.dataStore.edit { settings ->
         settings[keyIsBackgroundServiceRunning]=value
@@ -248,6 +270,8 @@ class StateSingleton private constructor(context:Context) {
     } catch (e:Exception) {
       println("setIsbackgroundServicerunning exception")
       promise?.reject("Error inSetIsBackgroundServiceRunning",e.toString())
+    }finally {
+        isBackgroundServiceRunningSemaphore.release()
     }
   }
 
@@ -280,9 +304,7 @@ class StateSingleton private constructor(context:Context) {
   }
 
  suspend fun  releaseStartSemaphore(promise:Promise){
-   println("In release startSemaphore")
    try{
-     println("This is available permits ${startSemaphoreRelease.availablePermits()}")
      if(startSemaphore.availablePermits()==0){
        startSemaphore.release()
        promise.resolve(null)

@@ -86,6 +86,7 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
       startForeground(Names().SERVICE_NOTIFICATION_ID,notification)
     }
     CoroutineScope(Dispatchers.IO).launch{
+      state.stopAlarmInsideService()//ensure only one alarm instance
       state.startAlarm(state.getAlarmTime())
 
     }
