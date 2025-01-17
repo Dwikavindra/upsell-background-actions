@@ -10,7 +10,6 @@ import android.content.Intent
 import android.os.Build
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.ReactContext
-import com.facebook.react.bridge.WritableMap
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 
@@ -47,7 +46,7 @@ object Helper {
         val bgOptions = BackgroundTaskOptions(context as ReactContext, options)
         val currentServiceIntent = Intent(
           context,
-          RNBackgroundActionsTask::class.java
+          RNBackgroundActionsTaskTesting::class.java
         )
         currentServiceIntent.putExtras(bgOptions.extras!!)
         // Start the task

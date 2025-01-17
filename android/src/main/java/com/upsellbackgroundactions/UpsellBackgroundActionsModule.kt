@@ -26,7 +26,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Semaphore
 
 
 class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
@@ -131,7 +130,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
         // Stop any other inten
 
         val bgOptions = BackgroundTaskOptions(reactApplicationContext, options)
-        currentServiceIntent = Intent(reactApplicationContext, RNBackgroundActionsTask::class.java)
+        currentServiceIntent = Intent(reactApplicationContext, RNBackgroundActionsTaskTesting::class.java)
         val state =
           StateSingleton.getInstance(this@UpsellBackgroundActionsModule.reactApplicationContext.applicationContext)
         state.setCurrentServiceIntent(currentServiceIntent!!)
@@ -237,7 +236,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
     // Get the task info from the options
     try {
       val bgOptions = BackgroundTaskOptions(reactApplicationContext, options)
-      val notification = RNBackgroundActionsTask.buildNotification(
+      val notification = RNBackgroundActionsTaskTesting.buildNotification(
         reactApplicationContext, bgOptions
       )
       val notificationManager =

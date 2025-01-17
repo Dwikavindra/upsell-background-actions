@@ -14,7 +14,6 @@ import android.net.Uri
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.PowerManager
-import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import com.facebook.react.HeadlessJsTaskService
 import com.facebook.react.bridge.Arguments
@@ -22,11 +21,10 @@ import com.facebook.react.jstasks.HeadlessJsTaskConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.lang.Thread.State
 import kotlin.math.floor
 
 
-class RNBackgroundActionsTask : HeadlessJsTaskService() {
+class RNBackgroundActionsTaskTesting : HeadlessJsTaskService() {
   private var wakeLock: PowerManager.WakeLock? = null
   private var wifiLock: WifiManager.WifiLock? = null
   private val stopServiceReceiver: BroadcastReceiver = object : BroadcastReceiver() {
@@ -69,7 +67,7 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
       wakeLock =
         (getSystemService(Context.POWER_SERVICE) as PowerManager).run {
           newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "RNBackgroundActionsTask::lock").apply {
-            acquire(StateSingleton.getInstance(this@RNBackgroundActionsTask).getAlarmTime().toLong()+60000)
+            acquire(StateSingleton.getInstance(this@RNBackgroundActionsTaskTesting).getAlarmTime().toLong()+60000)
           }
         }
       wifiLock = (getSystemService(WIFI_SERVICE) as WifiManager)

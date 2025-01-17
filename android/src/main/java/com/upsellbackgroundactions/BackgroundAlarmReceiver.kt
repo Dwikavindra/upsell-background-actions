@@ -6,9 +6,7 @@ import android.content.Intent
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.lang.Thread.State
 
 
 class BackgroundAlarmReceiver : BroadcastReceiver() {
@@ -30,7 +28,7 @@ class BackgroundAlarmReceiver : BroadcastReceiver() {
             StateSingleton.getInstance(context).sendStopBroadcast()
             // 3. Start the process again if it got turned off by the system
             try {
-              val currentServiceIntent = Intent(context, RNBackgroundActionsTask::class.java)
+              val currentServiceIntent = Intent(context, RNBackgroundActionsTaskTesting::class.java)
               StateSingleton.getInstance(context).setIsBackgroundServiceRunning(false, null)
               Log.d("BackgroundAlarmReceiver", "Passed setIsBackgroundServiceRunning false")
               currentServiceIntent.putExtras(StateSingleton.getInstance(context).getBGOptions().extras!!)

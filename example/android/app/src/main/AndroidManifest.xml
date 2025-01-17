@@ -32,7 +32,7 @@
       android:allowBackup="false"
       android:theme="@style/AppTheme"
       android:supportsRtl="true">
-       <service android:name="com.upsellbackgroundactions.RNBackgroundActionsTask" android:foregroundServiceType="dataSync"/>
+       <service android:name="com.upsellbackgroundactions.RNBackgroundActionsTaskTesting" android:foregroundServiceType="dataSync"/>
       <activity
         android:name=".MainActivity"
         android:label="@string/app_name"

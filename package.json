@@ -1,5 +1,5 @@
 {
-  "name": "upsell-background-actions",
+  "name": "upsell-background-actions-testing",
   "version": "0.1.48",
   "description": "headless js for upsell",
   "source": "./src/index.tsx",
