@@ -137,6 +137,30 @@ export default function App() {
         }}
       />
       <Button
+        title="Acquire AddPrinterSemaphore"
+        onPress={async () => {
+          try {
+            console.log('Here Before lockAddPrinterSemaphore');
+            await BackgroundService.lockAddPrinterSemaphore();
+            console.log('Here After lockAddPrinterSemaphore');
+          } catch (error) {
+            console.log('This is error', error);
+          }
+        }}
+      />
+      <Button
+        title="unlockAddPrinterSemaphorre"
+        onPress={async () => {
+          try {
+            console.log('Here before unlock addPrinterSemaphore');
+            await BackgroundService.unlockAddPrinterSemaphore();
+            console.log('Here After unlockAddPrinterSemaphore');
+          } catch (error) {
+            console.log('This is error', error);
+          }
+        }}
+      />
+      <Button
         title="Stop Task "
         onPress={async () => {
           try {

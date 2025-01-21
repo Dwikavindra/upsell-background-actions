@@ -381,7 +381,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
     fun unlockAddPrinterSemaphore(promise: Promise) {
       CoroutineScope(Dispatchers.IO).launch {
         StateSingleton.getInstance(reactApplicationContext.applicationContext)
-          .acquireAddPrinterSemaphore(promise)
+          .releaseAddPrinterSemaphore(promise)
       }
     }
 
