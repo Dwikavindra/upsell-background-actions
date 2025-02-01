@@ -36,7 +36,7 @@ export default function App() {
       console.log('Here in intensive task');
       process = process + 1;
       await BackgroundService.lock();
-
+      console.log('Passed lock');
       for (
         let i = 0;
         await BackgroundService.isBackgroundServiceRunning();
@@ -48,9 +48,10 @@ export default function App() {
         );
         console.log('Number', i);
         await sleep(1000);
+        console.log('entering asleep 30'); // in this period alarm fires-> thread sleep 10secs-> and try to acquire the semaphore
+        // asleep longer than waiting time
       }
     } catch (e) {
-      const foundError = e as Error;
       console.log('Error from intensive', e);
     } finally {
       console.log(
@@ -114,10 +115,8 @@ export default function App() {
         title="Start Task "
         onPress={async () => {
           try {
-            console.log('Here');
-            // This one ran for n times should still eventually close and run
-            // previous error causeed by Dispatchers.Main and Default
-            BackgroundService.start(veryIntensiveTask, options, 30000);
+            BackgroundService.start(veryIntensiveTask, options, 20000);
+
             console.log('Here After');
           } catch (error) {
             console.log('This is error', error);

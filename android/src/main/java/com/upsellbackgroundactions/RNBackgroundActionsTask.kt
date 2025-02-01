@@ -69,7 +69,7 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
       wakeLock =
         (getSystemService(Context.POWER_SERVICE) as PowerManager).run {
           newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "RNBackgroundActionsTask::lock").apply {
-            acquire(StateSingleton.getInstance(this@RNBackgroundActionsTask).getAlarmTime().toLong()+60000)
+            acquire(StateSingleton.getInstance(this@RNBackgroundActionsTask).getAlarmTime().toLong()+240000)
           }
         }
       wifiLock = (getSystemService(WIFI_SERVICE) as WifiManager)
@@ -85,11 +85,11 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
     }else{
       startForeground(Names().SERVICE_NOTIFICATION_ID,notification)
     }
-    CoroutineScope(Dispatchers.IO).launch{
       state.stopAlarmInsideService()//ensure only one alarm instance
+        CoroutineScope(Dispatchers.IO).launch{
       state.startAlarm(state.getAlarmTime())
-
     }
+      
 
     // Register the broadcast receiver to listen for the stop action
     val filter = IntentFilter(Names().ACTION_STOP_SERVICE)

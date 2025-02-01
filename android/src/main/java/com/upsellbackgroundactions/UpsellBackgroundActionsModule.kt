@@ -27,6 +27,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.runBlocking
 
 
 class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
@@ -126,25 +127,31 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
   @ReactMethod
   fun start(options: ReadableMap, triggerTime: Double, promise: Promise) {
 
-    CoroutineScope(Dispatchers.IO).launch {
+    Thread {
       try {
         // Stop any other inten
-
-        val bgOptions = BackgroundTaskOptions(reactApplicationContext, options)
-        currentServiceIntent = Intent(reactApplicationContext, RNBackgroundActionsTask::class.java)
-        val state =
-          StateSingleton.getInstance(this@UpsellBackgroundActionsModule.reactApplicationContext.applicationContext)
+         val bgOptions = BackgroundTaskOptions(this@UpsellBackgroundActionsModule.reactApplicationContext, options)
+        currentServiceIntent = Intent(this@UpsellBackgroundActionsModule.reactApplicationContext, RNBackgroundActionsTask::class.java)
+        println("Passed currentServiceIntent")
+        runBlocking{
+        println("Inside runBlocking")
+        val state = StateSingleton.getInstance(this@UpsellBackgroundActionsModule.reactApplicationContext.applicationContext)
         state.setCurrentServiceIntent(currentServiceIntent!!)
         state.setBGOptions(bgOptions)
         currentServiceIntent!!.putExtras(bgOptions.extras!!)
         state.setAlarmTime(triggerTime)
         state.setIsAlarmStoppedByUser(false)
         state.setIsBackgroundServiceRunning(true, null)
+                println("Passed setIsbackgroundServiceRUNNING")
+      
+        }
+
+     
         reactApplicationContext.startService(currentServiceIntent)
       } catch (e: java.lang.Exception) {
         promise.reject(e)
       }
-    }
+    }.start()
   }
 
 
@@ -340,10 +347,13 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
   @Suppress("unused")
   @ReactMethod
   fun lock(promise: Promise) {
-    CoroutineScope(Dispatchers.IO).launch {
-      StateSingleton.getInstance(reactApplicationContext.applicationContext)
+    Thread{
+          StateSingleton.getInstance(reactApplicationContext.applicationContext)
         .acquireStartSemaphore(promise)
-    }
+    }.start(
+  
+    )
+
   }
 
   @Suppress("unused")
@@ -369,20 +379,20 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
     @Suppress("unused")
     @ReactMethod
     fun lockAddPrinterSemaphore(promise: Promise) {
-      CoroutineScope(Dispatchers.IO).launch {
+      Thread {
         StateSingleton.getInstance(reactApplicationContext.applicationContext)
           .acquireAddPrinterSemaphore(promise)
-      }
+      }.start()
 
     }
 
     @Suppress("unused")
     @ReactMethod
     fun unlockAddPrinterSemaphore(promise: Promise) {
-      CoroutineScope(Dispatchers.IO).launch {
+      Thread {
         StateSingleton.getInstance(reactApplicationContext.applicationContext)
           .releaseAddPrinterSemaphore(promise)
-      }
+      }.start()
     }
 
     @Suppress("unused")

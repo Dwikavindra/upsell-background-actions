@@ -291,28 +291,28 @@ class StateSingleton private constructor(context:Context) {
       isBackgroundServiceRunningSemaphore.release()
     }
   }
-  suspend fun acquireStartSemaphore(promise:Promise){
+  fun acquireStartSemaphore(promise:Promise?){
 
       try{
         startSemaphore.acquire()
-        promise.resolve(null)
+        promise?.resolve(null)
       }catch (e:InterruptedException){
-        promise.reject(e)
+        promise?.reject(e)
       }
 
 
   }
 
- suspend fun  releaseStartSemaphore(promise:Promise){
+ fun  releaseStartSemaphore(promise:Promise?){
    try{
      if(startSemaphore.availablePermits()==0){
        startSemaphore.release()
-       promise.resolve(null)
+       promise?.resolve(null)
      }
-     promise.resolve("Not Safe to release")
+     promise?.resolve("Not Safe to release")
 
    }catch(e:Exception){
-     promise.reject(e)
+     promise?.reject(e)
    }
   }
   @Suppress("UNCHECKED_CAST")
@@ -331,15 +331,15 @@ class StateSingleton private constructor(context:Context) {
 
   }
 
-  suspend fun acquireAddPrinterSemaphore(promise:Promise){
+   fun acquireAddPrinterSemaphore(promise:Promise?){
       addPrinterSemaphore.acquire()
-      promise.resolve(null)
+      promise?.resolve(null)
 
 
   }
-  fun  releaseAddPrinterSemaphore(promise:Promise){
+  fun  releaseAddPrinterSemaphore(promise:Promise?){
     addPrinterSemaphore.release()
-    promise.resolve(null)
+    promise?.resolve(null)
   }
 
   fun listRunningServices():String {
