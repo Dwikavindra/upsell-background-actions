@@ -143,10 +143,10 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
         state.setIsAlarmStoppedByUser(false)
         state.setIsBackgroundServiceRunning(true, null)
                 println("Passed setIsbackgroundServiceRUNNING")
-      
+
         }
 
-     
+
         reactApplicationContext.startService(currentServiceIntent)
       } catch (e: java.lang.Exception) {
         promise.reject(e)
@@ -196,6 +196,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
 
       val scheduleExactAlarm = Intent("android.settings.REQUEST_SCHEDULE_EXACT_ALARM")
       scheduleExactAlarm.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+//      scheduleExactAlarm.setPackage(reactApplicationContext.applicationContext.packageName)
       currentActivity.startActivityForResult(scheduleExactAlarm, SCHEDULE_EXACT_ALARM_REQUEST)
     } catch (e: java.lang.Exception) {
       mExactAlarmPromise!!.reject("FAILED_TO_SHOW_ALARM_SETTINGS", e)
@@ -351,7 +352,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
           StateSingleton.getInstance(reactApplicationContext.applicationContext)
         .acquireStartSemaphore(promise)
     }.start(
-  
+
     )
 
   }

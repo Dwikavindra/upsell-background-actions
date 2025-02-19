@@ -160,6 +160,16 @@ export default function App() {
         }}
       />
       <Button
+        title="requestSchedulExactAlarmPermisssion"
+        onPress={async () => {
+          try {
+            await BackgroundService.requestExactAlarmPermission();
+          } catch (error) {
+            console.log('This is error', error);
+          }
+        }}
+      />
+      <Button
         title="Stop Task "
         onPress={async () => {
           try {
