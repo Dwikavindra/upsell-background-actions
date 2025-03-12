@@ -45,8 +45,7 @@ class StateSingleton private constructor(context:Context) {
   private val startSemaphore=Semaphore(1)
   private val addPrinterSemaphore=Semaphore(1)
   private val isBackgroundServiceRunningSemaphore= Semaphore(1)
-  private val alarmContextSemaphore= Semaphore(1)
-  private val startSemaphoreRelease=Semaphore(1)
+  private val restartAlarmContextSemaphore= Semaphore(1)
   companion object {
 
 
@@ -81,6 +80,17 @@ class StateSingleton private constructor(context:Context) {
   suspend fun getContext():Context{
     return this.context.get()!!
   }
+
+  fun acquireRestartAlarmSemaphore():Boolean{
+      return restartAlarmContextSemaphore.tryAcquire()
+  }
+
+  fun releaseRestartAlarmSemaphore(){
+    if(restartAlarmContextSemaphore.availablePermits()==0){
+      restartAlarmContextSemaphore.release()
+    }
+  }
+
   @Suppress("withContext")
   suspend fun setisItSafeToStopAlarm(value:Boolean) {
     try {

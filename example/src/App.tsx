@@ -32,6 +32,7 @@ export default function App() {
   };
   const veryIntensiveTask = async (taskDataArguments: any) => {
     // Example of an infinite loop task
+    let isError = false;
     try {
       console.log('Here in intensive task');
       process = process + 1;
@@ -42,22 +43,30 @@ export default function App() {
         await BackgroundService.isBackgroundServiceRunning();
         i++
       ) {
+        if (i === 10) {
+          throw new Error('Testing Error for restart');
+        }
         console.log(
           'This is await isBackgroundServiceRunning',
           await BackgroundService.isBackgroundServiceRunning()
         );
         console.log('Number', i);
         await sleep(1000);
-        console.log('entering asleep 30'); // in this period alarm fires-> thread sleep 10secs-> and try to acquire the semaphore
+
         // asleep longer than waiting time
       }
     } catch (e) {
       console.log('Error from intensive', e);
+      isError = true;
     } finally {
       console.log(
         'This is is list await ',
         await BackgroundService.listRunningServices()
       );
+      if (isError === true) {
+        await BackgroundService.sendStartServiceIntentInCatch();
+        console.log('Passed sendstartServiceInCatch');
+      }
       console.log('Passed while loop');
       await BackgroundService.unlock();
       console.log('Passed unlock');
@@ -115,7 +124,7 @@ export default function App() {
         title="Start Task "
         onPress={async () => {
           try {
-            BackgroundService.start(veryIntensiveTask, options, 20000);
+            BackgroundService.start(veryIntensiveTask, options, 5000);
 
             console.log('Here After');
           } catch (error) {
@@ -164,6 +173,18 @@ export default function App() {
         onPress={async () => {
           try {
             await BackgroundService.requestExactAlarmPermission();
+          } catch (error) {
+            console.log('This is error', error);
+          }
+        }}
+      />
+      <Button
+        title="canScheduleExactAlarmPermission"
+        onPress={async () => {
+          try {
+            const result =
+              await BackgroundService.checkScheduleExactAlarmPermission();
+            console.log('This is canScheduleExactAlarm', result);
           } catch (error) {
             console.log('This is error', error);
           }

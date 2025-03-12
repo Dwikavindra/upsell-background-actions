@@ -196,7 +196,6 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
 
       val scheduleExactAlarm = Intent("android.settings.REQUEST_SCHEDULE_EXACT_ALARM")
       scheduleExactAlarm.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-//      scheduleExactAlarm.setPackage(reactApplicationContext.applicationContext.packageName)
       currentActivity.startActivityForResult(scheduleExactAlarm, SCHEDULE_EXACT_ALARM_REQUEST)
     } catch (e: java.lang.Exception) {
       mExactAlarmPromise!!.reject("FAILED_TO_SHOW_ALARM_SETTINGS", e)
@@ -405,15 +404,14 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
       }
 
     }
-
-    @ReactMethod
-    //TODO: DELETE NOT USED IN THE FUTURE AT ALL
-    fun getAlarmPermissionStatus(promise: Promise) {
-      val optionSharedPreference =
-        reactApplicationContext.getSharedPreferences(
-          Names().SHARED_PREFERENCES_KEY,
-          Context.MODE_PRIVATE
-        )
-      promise.resolve(optionSharedPreference.getBoolean("ALARM_PERMISSION_GRANTED", false))
-    }
+   @ReactMethod
+   fun sendStartServiceIntentInCatch(promise:Promise){
+     val startAlarmIntent = Intent(
+       reactApplicationContext,
+       BackgroundAlarmReceiver::class.java
+     )
+     startAlarmIntent.setAction(Names().ACTION_START_ALARM_MANAGER)
+     reactApplicationContext.sendBroadcast(startAlarmIntent);
+     promise.resolve(null)
+   }
 }

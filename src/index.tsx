@@ -149,6 +149,9 @@ class UpsellBackgroundService {
   async interruptQueuedThread() {
     return await UpsellBackgroundActions.interruptQueuedThread();
   }
+  async sendStartServiceIntentInCatch() {
+    return await UpsellBackgroundActions.sendStartServiceIntentInCatch();
+  }
 }
 const BackgroundService = new UpsellBackgroundService();
 export default BackgroundService;
