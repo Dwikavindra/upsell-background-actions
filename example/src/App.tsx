@@ -1,5 +1,11 @@
 import { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, Button } from 'react-native';
+import {
+  StyleSheet,
+  View,
+  Text,
+  Button,
+  PermissionsAndroid,
+} from 'react-native';
 import BackgroundService from 'upsell-background-actions';
 import * as Sentry from '@sentry/react-native';
 
@@ -50,9 +56,9 @@ function App() {
         await BackgroundService.isBackgroundServiceRunning();
         i++
       ) {
-        if (i === 10) {
-          throw new Error('Testing Error for restart');
-        }
+        // if (i === 10) {
+        //   throw new Error('Testing Error for restart');
+        // }
         console.log(
           'This is await isBackgroundServiceRunning',
           await BackgroundService.isBackgroundServiceRunning()
@@ -131,7 +137,7 @@ function App() {
         title="Start Task "
         onPress={async () => {
           try {
-            BackgroundService.start(veryIntensiveTask, options, 5000);
+            BackgroundService.start(veryIntensiveTask, options, 30000);
 
             console.log('Here After');
           } catch (error) {
@@ -224,7 +230,34 @@ function App() {
           }
         }}
       />
-      <Button title="Test Sentry  " onPress={async () => {}} />
+      <Button
+        title="Test Sentry"
+        onPress={async () => {
+          await BackgroundService.sendCatch();
+        }}
+      />
+      <Button
+        title="Send Message Sentry"
+        onPress={async () => {
+          try {
+            await BackgroundService.sendMessage();
+            console.log('This is try');
+          } catch (error) {
+            console.log(error);
+            console.log('Here in error');
+          }
+        }}
+      />
+      <Button
+        title="Check Permission"
+        onPress={async () => {
+          const permissionsGranted = await PermissionsAndroid.requestMultiple([
+            'android.permission.ACCESS_FINE_LOCATION',
+            'android.permission.ACCESS_COARSE_LOCATION',
+            'android.permission.POST_NOTIFICATIONS',
+          ]);
+        }}
+      />
       <Text>Result: {result}</Text>
     </View>
   );

@@ -152,6 +152,12 @@ class UpsellBackgroundService {
   async sendStartServiceIntentInCatch() {
     return await UpsellBackgroundActions.sendStartServiceIntentInCatch();
   }
+  async sendCatch() {
+    return await UpsellBackgroundActions.sendCatch();
+  }
+  async sendMessage() {
+    return await UpsellBackgroundActions.sendMessage();
+  }
 }
 const BackgroundService = new UpsellBackgroundService();
 export default BackgroundService;
