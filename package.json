@@ -1,6 +1,6 @@
 {
   "name": "upsell-background-actions",
-  "version": "0.1.0",
+  "version": "0.1.51",
   "description": "upsell-autoprint",
   "source": "./src/index.tsx",
   "main": "./lib/module/index.js",
