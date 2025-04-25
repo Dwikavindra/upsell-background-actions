@@ -38,8 +38,7 @@ Restart would not be accurate with an addition 30 seconds to wait for the servic
   fun setupNotification():Notification{
     createNotificationChannel("Restart Autoprint","autoprint restart")
     val singleton = StateSingleton.getInstance(this)
-    val bgOptions=singleton.getBGOptions()
-    return buildNotification(this,bgOptions!!)
+    return buildNotification(this)
   }
 
   @SuppressLint("NewApi")
@@ -141,6 +140,7 @@ Restart would not be accurate with an addition 30 seconds to wait for the servic
   private fun stopCurrentService() {
     runBlocking {
       StateSingleton.getInstance(this@RestartTask).setisItSafeToStopAlarm(false)
+      StateSingleton.getInstance(this@RestartTask).setIsBackgroundServiceRunning(false, null)
       StateSingleton.getInstance(this@RestartTask).sendStopBroadcast()
     }
   }
@@ -161,30 +161,21 @@ Restart would not be accurate with an addition 30 seconds to wait for the servic
   override fun onBind(intent: Intent?): IBinder? {
     return null
   }
-  fun buildNotification(context: Context, bgOptions: BackgroundTaskOptions): Notification {
-    // Get info
-    val taskTitle = bgOptions.taskTitle
-    val taskDesc = bgOptions.taskDesc
-    val iconInt = bgOptions.iconInt
-    val color = bgOptions.color
-    val linkingURI = bgOptions.linkingURI
-    val notificationIntent = if (linkingURI != null) {
-      Intent(Intent.ACTION_VIEW, Uri.parse(linkingURI))
-    } else {
-      // As RN works on single activity architecture - we don't need to find current activity on behalf of react context
+    fun buildNotification(context: Context): Notification {
+    val notificationIntent =
       Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
-    }
+
     val contentIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
       PendingIntent.getActivity(
         context,
-        0,
+        1,
         notificationIntent,
         PendingIntent.FLAG_IMMUTABLE
       )
     } else {
       PendingIntent.getActivity(
         context,
-        0,
+        1,
         notificationIntent,
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
       )
@@ -192,19 +183,12 @@ Restart would not be accurate with an addition 30 seconds to wait for the servic
     val builder = NotificationCompat.Builder(context,Names().CHANNEL_RESTART)
       .setContentTitle("Restart Autoprint")
       .setContentText("autoprint restart")
-      .setSmallIcon(iconInt)
+      .setSmallIcon(android.R.drawable.ic_dialog_alert)
       .setContentIntent(contentIntent)
       .setOngoing(true)
       .setPriority(NotificationCompat.PRIORITY_MIN)
-      .setColor(color)
 
-    val progressBarBundle = bgOptions.progressBar
-    if (progressBarBundle != null) {
-      val progressMax = floor(progressBarBundle.getDouble("max")) as Int
-      val progressCurrent = floor(progressBarBundle.getDouble("value")) as Int
-      val progressIndeterminate = progressBarBundle.getBoolean("indeterminate")
-      builder.setProgress(progressMax, progressCurrent, progressIndeterminate)
-    }
+
     return builder.build()
   }
 }

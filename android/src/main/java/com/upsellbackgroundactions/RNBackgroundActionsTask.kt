@@ -52,73 +52,89 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
   @RequiresApi(Build.VERSION_CODES.TIRAMISU)
   @SuppressLint("ForegroundServiceType", "UnspecifiedRegisterReceiverFlag")
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-    Thread{
-      try{
-        val singleton=StateSingleton.getInstance(this)
-        if(intent==null){
-          val currentServiceIntent=singleton.getCurrentServiceIntent()
-          if(currentServiceIntent!=null){
-            super.onStartCommand(currentServiceIntent, flags, startId)
-          }else{
-            val serviceIntent=  Intent(this, RNBackgroundActionsTask::class.java)
-            serviceIntent.putExtras(singleton.getBGOptions()!!.extras!!) // recreate Intent
-            super.onStartCommand(serviceIntent, flags, startId)
-          }
-        }else{
-          super.onStartCommand(intent, flags, startId)// need to call this cause this is headless js react native to register the js commands
+    try {
+      val singleton = StateSingleton.getInstance(this)
+
+//      val testIntent=null// to check if null on live make intent to testIntent, not tested with testing packages to test behaviour of HeadlessJSService can't replicate that
+      // on null it should only take the js config the intent should not be used further than that according to the source code
+      // confirmed working
+      if (intent == null) {
+        println("is null")
+        val currentServiceIntent = singleton.getCurrentServiceIntent()// change to null to test for null case
+        if (currentServiceIntent != null) {/// for testing on live to null change the currentServiceIntent to null, why not on a test file? can't really mimic a Service
+          super.onStartCommand(currentServiceIntent, flags, startId)
+        } else {
+          val serviceIntent = Intent(this, RNBackgroundActionsTask::class.java)
+          serviceIntent.putExtras(singleton.getBGOptions()!!.extras!!) // recreate Intent
+          super.onStartCommand(serviceIntent, flags, startId)
+          println("Passed Else case on null ")
         }
-
-
-        val bgOptions = BackgroundTaskOptions(singleton.getBGOptions()!!.extras!!)
-        createNotificationChannel(
+      } else {
+        super.onStartCommand(
+          intent,
+          flags,
+          startId
+        )// need to call this cause this is headless js react native to register the js commands
+      }
+      Thread {
+        try {
+          val bgOptions = BackgroundTaskOptions(singleton.getBGOptions()!!.extras!!)
+          createNotificationChannel(
             bgOptions.taskTitle,
             bgOptions.taskDesc
           )
-        val notification = buildNotification(this, bgOptions)
-        runBlocking {
-          wakeLock =
-            (getSystemService(Context.POWER_SERVICE) as PowerManager).run {
-              newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "RNBackgroundActionsTask::lock").apply {
-                acquire(StateSingleton.getInstance(this@RNBackgroundActionsTask).getAlarmTime().toLong()+240000)
+          val notification = buildNotification(this, bgOptions)
+          runBlocking {
+            wakeLock =
+              (getSystemService(Context.POWER_SERVICE) as PowerManager).run {
+                newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "RNBackgroundActionsTask::lock").apply {
+                  acquire(
+                    StateSingleton.getInstance(this@RNBackgroundActionsTask).getAlarmTime()
+                      .toLong() + 240000
+                  )
+                }
               }
-            }
-          wifiLock = (getSystemService(WIFI_SERVICE) as WifiManager)
-            .createWifiLock(WifiManager.WIFI_MODE_FULL, "mylock")
-          wifiLock!!.acquire()
+            wifiLock = (getSystemService(WIFI_SERVICE) as WifiManager)
+              .createWifiLock(WifiManager.WIFI_MODE_FULL, "mylock")
+            wifiLock!!.acquire()
+          }
+
+
+          val state = StateSingleton.getInstance(this)
+
+
+          ServiceCompat.startForeground(
+            this, Names().SERVICE_NOTIFICATION_ID, notification,
+            FOREGROUND_SERVICE_TYPE_DATA_SYNC
+          )
+
+
+          runBlocking {
+            state.stopAlarmInsideService()//ensure only one alarm instance
+            println("This is state.getAlarmTime ${state.getAlarmTime()}")
+            state.startAlarm(state.getAlarmTime())
+          }
+          val filter = IntentFilter(Names().ACTION_STOP_SERVICE)
+          registerReceiver(stopServiceReceiver, filter, RECEIVER_EXPORTED)
+        } catch (e: Exception) {
+          val sentryInstance = Sentry.getSentry()
+          if (sentryInstance !== null) {
+            Sentry.logDebug(sentryInstance, "onStartCommand RNBackgroundActionTask Error in Thread",e)
+          }
         }
 
-
-        val state= StateSingleton.getInstance(this)
-
-
-        ServiceCompat.startForeground(this,Names().SERVICE_NOTIFICATION_ID, notification,
-          FOREGROUND_SERVICE_TYPE_DATA_SYNC)
-
-
-        runBlocking {
-          state.stopAlarmInsideService()//ensure only one alarm instance
-          println("This is state.getAlarmTime ${state.getAlarmTime()}")
-          state.startAlarm(state.getAlarmTime())
-        }
-
-
-
-
-        // Register the broadcast receiver to listen for the stop action
-        val filter = IntentFilter(Names().ACTION_STOP_SERVICE)
-        registerReceiver(stopServiceReceiver, filter, RECEIVER_EXPORTED)
-      }catch(e:Exception){
-        val sentryInstance=Sentry.getSentry()
-        if(sentryInstance!==null){
-          Sentry.captureMessage(sentryInstance,"onStartCommand RNBackgroundActionTask started")
-        }
+      }.start()
+      return START_STICKY // Keep the service running until explicitly stopped
+    }catch (e:Exception){
+      val sentryInstance = Sentry.getSentry()
+      if (sentryInstance !== null) {
+        Sentry.logDebug(sentryInstance, "onStartCommand RNBackgroundActionTask FatalError Service is Stopped", e)
       }
+      stopForegroundService()
+      return START_NOT_STICKY
+    }
 
-    }.start()
 
-
-
-    return START_STICKY // Keep the service running until explicitly stopped
   }
 
   override fun onDestroy() {
