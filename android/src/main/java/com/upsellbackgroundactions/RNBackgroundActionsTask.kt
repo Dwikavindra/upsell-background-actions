@@ -9,6 +9,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
 import android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED
 import android.net.Uri
 import android.net.wifi.WifiManager
@@ -16,14 +17,11 @@ import android.os.Build
 import android.os.PowerManager
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
 import com.facebook.react.HeadlessJsTaskService
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.jstasks.HeadlessJsTaskConfig
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import java.lang.Thread.State
 import kotlin.math.floor
 
 
@@ -40,74 +38,85 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
     }
   }
 
-  override fun getTaskConfig(intent: Intent): HeadlessJsTaskConfig? {
+  override fun getTaskConfig(intent: Intent): HeadlessJsTaskConfig {
     val extras = intent.extras
-    if (extras != null) {
-      return HeadlessJsTaskConfig(
-        extras.getString("taskName")?:"taskName",
+    return HeadlessJsTaskConfig(
+        extras?.getString("taskName") ?:"AutoPrint",// it must exist
         Arguments.fromBundle(extras),
         0,
         true
       )
-    }
-    return null
   }
 
 
   @RequiresApi(Build.VERSION_CODES.TIRAMISU)
   @SuppressLint("ForegroundServiceType", "UnspecifiedRegisterReceiverFlag")
-  override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
+  override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
     Thread{
-      val sentryInstance=Sentry.getSentry()
-      if(sentryInstance!==null){
-        Sentry.captureMessage(sentryInstance,"Inside on Start Command")
-      }
-      val extras = intent.extras
-      requireNotNull(extras) { "Extras cannot be null" }
-      val bgOptions = BackgroundTaskOptions(extras)
-      createNotificationChannel(
-        bgOptions.taskTitle,
-        bgOptions.taskDesc
-      )
-      val notification = buildNotification(this, bgOptions)
-      runBlocking {
-        wakeLock =
-          (getSystemService(Context.POWER_SERVICE) as PowerManager).run {
-            newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "RNBackgroundActionsTask::lock").apply {
-              acquire(StateSingleton.getInstance(this@RNBackgroundActionsTask).getAlarmTime().toLong()+240000)
-            }
+      try{
+        val singleton=StateSingleton.getInstance(this)
+        if(intent==null){
+          val currentServiceIntent=singleton.getCurrentServiceIntent()
+          if(currentServiceIntent!=null){
+            super.onStartCommand(currentServiceIntent, flags, startId)
+          }else{
+            val serviceIntent=  Intent(this, RNBackgroundActionsTask::class.java)
+            serviceIntent.putExtras(singleton.getBGOptions()!!.extras!!) // recreate Intent
+            super.onStartCommand(serviceIntent, flags, startId)
           }
-        wifiLock = (getSystemService(WIFI_SERVICE) as WifiManager)
-          .createWifiLock(WifiManager.WIFI_MODE_FULL, "mylock")
-        wifiLock!!.acquire()
+        }else{
+          super.onStartCommand(intent, flags, startId)// need to call this cause this is headless js react native to register the js commands
+        }
+
+
+        val bgOptions = BackgroundTaskOptions(singleton.getBGOptions()!!.extras!!)
+        createNotificationChannel(
+            bgOptions.taskTitle,
+            bgOptions.taskDesc
+          )
+        val notification = buildNotification(this, bgOptions)
+        runBlocking {
+          wakeLock =
+            (getSystemService(Context.POWER_SERVICE) as PowerManager).run {
+              newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "RNBackgroundActionsTask::lock").apply {
+                acquire(StateSingleton.getInstance(this@RNBackgroundActionsTask).getAlarmTime().toLong()+240000)
+              }
+            }
+          wifiLock = (getSystemService(WIFI_SERVICE) as WifiManager)
+            .createWifiLock(WifiManager.WIFI_MODE_FULL, "mylock")
+          wifiLock!!.acquire()
+        }
+
+
+        val state= StateSingleton.getInstance(this)
+
+
+        ServiceCompat.startForeground(this,Names().SERVICE_NOTIFICATION_ID, notification,
+          FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+
+
+        runBlocking {
+          state.stopAlarmInsideService()//ensure only one alarm instance
+          println("This is state.getAlarmTime ${state.getAlarmTime()}")
+          state.startAlarm(state.getAlarmTime())
+        }
+
+
+
+
+        // Register the broadcast receiver to listen for the stop action
+        val filter = IntentFilter(Names().ACTION_STOP_SERVICE)
+        registerReceiver(stopServiceReceiver, filter, RECEIVER_EXPORTED)
+      }catch(e:Exception){
+        val sentryInstance=Sentry.getSentry()
+        if(sentryInstance!==null){
+          Sentry.captureMessage(sentryInstance,"onStartCommand RNBackgroundActionTask started")
+        }
       }
 
-
-      val state= StateSingleton.getInstance(this)
-
-
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-        startForeground(Names().SERVICE_NOTIFICATION_ID, notification,FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED)
-
-      }else {
-        startForeground(Names().SERVICE_NOTIFICATION_ID, notification)
-      }
-
-      runBlocking {
-        state.stopAlarmInsideService()//ensure only one alarm instance
-        println("This is state.getAlarmTime ${state.getAlarmTime()}")
-        state.startAlarm(state.getAlarmTime())
-      }
-
-
-
-
-      // Register the broadcast receiver to listen for the stop action
-      val filter = IntentFilter(Names().ACTION_STOP_SERVICE)
-      registerReceiver(stopServiceReceiver, filter, RECEIVER_EXPORTED)
     }.start()
 
-    super.onStartCommand(intent, flags, startId)
+
 
     return START_STICKY // Keep the service running until explicitly stopped
   }
@@ -117,6 +126,7 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
   }
 
   private fun stopForegroundService() {
+
     wakeLock?.let {
       if (it.isHeld) {
         it.release()
@@ -132,7 +142,6 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
     stopSelf() // Stop the service itself
     println("Passed stopSelf")
     unregisterReceiver(stopServiceReceiver) // Unregister the broadcast receiver
-
   }
 
   private fun createNotificationChannel(taskTitle: String, taskDesc: String) {
@@ -151,6 +160,7 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
 
     @SuppressLint("UnspecifiedImmutableFlag")
     fun buildNotification(context: Context, bgOptions: BackgroundTaskOptions): Notification {
+
       // Get info
       val taskTitle = bgOptions.taskTitle
       val taskDesc = bgOptions.taskDesc

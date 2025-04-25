@@ -16,6 +16,10 @@ class BackgroundTaskOptions {
     this.extras = extras
   }
 
+  constructor(extras: ReadableMap) {
+    this.extras=Arguments.toBundle(extras)
+  }
+
   constructor(reactContext: ReactContext, options: ReadableMap) {
     // Create extras
     extras = Arguments.toBundle(options)

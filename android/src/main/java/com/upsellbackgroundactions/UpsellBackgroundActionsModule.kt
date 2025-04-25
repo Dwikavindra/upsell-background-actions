@@ -105,6 +105,8 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
     promise.resolve(null)
   }
 
+
+
   @SuppressLint("ServiceCast")
   @ReactMethod
   fun listRunningServices(promise: Promise) {
@@ -130,7 +132,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
 
     Thread {
       try {
-        // Stop any other inten
+        //todo: Save the readable map
          val bgOptions = BackgroundTaskOptions(this@UpsellBackgroundActionsModule.reactApplicationContext, options)
         currentServiceIntent = Intent(this@UpsellBackgroundActionsModule.reactApplicationContext, RNBackgroundActionsTask::class.java)
         println("Passed currentServiceIntent")

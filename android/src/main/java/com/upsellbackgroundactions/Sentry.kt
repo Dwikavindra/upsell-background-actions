@@ -28,5 +28,8 @@ class Sentry {
         Log.e("com.upsellbackgroundactions",e.toString())
       }
     }
+    fun logDebug(sentry:Class<*>,message:String,exception:Exception){
+      this.captureMessage(sentry,"upsell-background-actions:$message $exception")
+    }
   }
 }

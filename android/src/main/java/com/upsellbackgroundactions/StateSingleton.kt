@@ -8,19 +8,30 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.os.Bundle
 import android.util.Log
+import androidx.annotation.ColorInt
+import androidx.annotation.IdRes
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Callback
+import com.facebook.react.bridge.JavaOnlyMap
 import com.facebook.react.bridge.Promise
+import com.facebook.react.bridge.ReadableMap
+import com.facebook.react.bridge.WritableMap
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
 
 import kotlinx.coroutines.flow.first
-
+import kotlinx.coroutines.runBlocking
 
 
 import java.lang.ref.WeakReference
@@ -39,6 +50,7 @@ class StateSingleton private constructor(context:Context) {
   private val keyIsItSafeToStopAlarm= booleanPreferencesKey("isItSafeToStopAlarm")
   private val keyIsAlarmStoppedByUser= booleanPreferencesKey("isAlarmStoppedByUser")
   private val keyAlarmTime= doublePreferencesKey("keyAlarmTime")
+  private val keyBGOptions= stringPreferencesKey("keyBGOptions")
   private val safeToStopAlarmSemaphore= Semaphore(1)
   private val alarmStopByUserSemaphore= Semaphore(1)
   private val alarmTimeSemaphore= Semaphore(1)
@@ -71,6 +83,10 @@ class StateSingleton private constructor(context:Context) {
       return result[keyIsItSafeToStopAlarm] ?: false
     } catch (e: Exception) {
       Log.d("Error from getIsItSafeToStopAlarm", e.toString())
+      val sentryInstance=Sentry.getSentry()
+      if(sentryInstance!==null){
+        Sentry.logDebug(sentryInstance,"Error getIsItSafeToStopAlarm",e)
+      }
       return true// return default value
     } finally {
       this.safeToStopAlarmSemaphore.release()
@@ -100,6 +116,10 @@ class StateSingleton private constructor(context:Context) {
       }
     } catch (e: Exception) {
       Log.d("Error from getIsItSafeToStopAlarm", e.toString())
+      val sentryInstance=Sentry.getSentry()
+      if(sentryInstance!==null){
+        Sentry.logDebug(sentryInstance,"Error setisItSafeToStopAlarm",e)
+      }
     } finally {
       this.safeToStopAlarmSemaphore.release()
     }
@@ -114,6 +134,10 @@ class StateSingleton private constructor(context:Context) {
       }
     } catch (e: Exception) {
       Log.d("Error from setIsAlarmStoppedByUser", e.toString())
+      val sentryInstance=Sentry.getSentry()
+      if(sentryInstance!==null){
+        Sentry.logDebug(sentryInstance,"Error setIsAlarmStoppedByUser",e)
+      }
     } finally {
       this.alarmStopByUserSemaphore.release()
     }
@@ -125,6 +149,10 @@ class StateSingleton private constructor(context:Context) {
       return result[keyIsAlarmStoppedByUser] ?: false
     } catch (e: Exception) {
       Log.d("Error from getIsAlarmStoppedByUser", e.toString())
+      val sentryInstance=Sentry.getSentry()
+      if(sentryInstance!==null){
+        Sentry.logDebug(sentryInstance,"Error getIsAlarmStoppedByUser",e)
+      }
       return true
     } finally {
       this.alarmStopByUserSemaphore.release()
@@ -139,6 +167,10 @@ class StateSingleton private constructor(context:Context) {
       }
     } catch (e: Exception) {
       Log.d("Error from alarmTimeSemaphore", e.toString())
+      val sentryInstance=Sentry.getSentry()
+      if(sentryInstance!==null){
+        Sentry.logDebug(sentryInstance,"Error setAlarmTime",e)
+      }
     } finally {
       this.alarmTimeSemaphore.release()
     }
@@ -149,6 +181,10 @@ class StateSingleton private constructor(context:Context) {
       val result:Preferences= context.get()!!.dataStore.data.first()
       return result[keyAlarmTime] ?: 300000.0
     } catch (e: Exception) {
+      val sentryInstance=Sentry.getSentry()
+      if(sentryInstance!==null){
+        Sentry.logDebug(sentryInstance,"Error getAlarmTime",e)
+      }
       Log.d("Error from alarmTimeSemaphore", e.toString())
       return this.alarmTime ?: 300000.0
     } finally {
@@ -160,11 +196,53 @@ class StateSingleton private constructor(context:Context) {
   fun setCurrentServiceIntent(intent: Intent){
     this.currentServiceIntent=intent
   }
+  fun getCurrentServiceIntent():Intent?{
+    return this.currentServiceIntent
+  }
   fun setBGOptions(options:BackgroundTaskOptions){
     this.bgOptions=options
+    val map= HashMap<String,Any>()
+    runBlocking {
+      context.get()!!.dataStore.edit { settings ->
+        map["taskTitle"] = options.taskTitle
+        map["taskDesc"]=options.taskDesc
+        map["iconInt"]=options.iconInt
+        map["color"]=options.color
+        if(options.linkingURI!=null){
+          map["linkingURI"]= options.linkingURI as String
+        }
+        val json=Gson().toJson(map)
+        settings[keyBGOptions]=json
+      }
+    }
+
+
   }
-  fun getBGOptions():BackgroundTaskOptions{
-    return this.bgOptions!!
+  fun getBGOptions():BackgroundTaskOptions?{
+    try{
+      if(this.bgOptions==null){
+        var localBgOptions:BackgroundTaskOptions?=null
+        runBlocking {
+          val result:Preferences=  context.get()!!.dataStore.data.first()
+          val type = object : TypeToken<HashMap<String, Any>>() {}.type
+          val map=Gson().fromJson<HashMap<String,Any>>(result[keyBGOptions],type)
+          val readableMap=JavaOnlyMap.from(map)
+          localBgOptions=BackgroundTaskOptions(readableMap)
+        }
+        requireNotNull(localBgOptions)
+        this.bgOptions=localBgOptions
+        return this.bgOptions!!
+      }else{
+        return this.bgOptions!!
+      }
+    }catch (e:Exception) {
+      val sentryInstance=Sentry.getSentry()
+      if(sentryInstance!==null){
+        Sentry.logDebug(sentryInstance,"Error from getBgOptions",e)
+      }
+      Log.e("ErrorUpsellBackgroundActions",e.toString())
+      return null
+    }
   }
   fun setPendingIntent(pendingIntent: PendingIntent){
     synchronized(this){
@@ -200,6 +278,10 @@ class StateSingleton private constructor(context:Context) {
         throw java.lang.Exception("OS version needs to be larger than android lollipop or android 21")
       }
     } catch (e: Exception) {
+      val sentryInstance=Sentry.getSentry()
+      if(sentryInstance!==null){
+        Sentry.logDebug(sentryInstance,"Error startAlarm",e)
+      }
       Log.d("Error start alarm",e.toString())
 
     }
@@ -234,6 +316,12 @@ class StateSingleton private constructor(context:Context) {
 
 
     }catch (e:Exception){
+      if (e.toString()!=="Not Safe to stop Alarm") {
+        val sentryInstance = Sentry.getSentry()
+        if (sentryInstance !== null) {
+          Sentry.logDebug(sentryInstance, "Error stopAlarm", e)
+        }
+      }
       promise.reject(e)
     }
   }
@@ -255,6 +343,12 @@ class StateSingleton private constructor(context:Context) {
         getAlarmManager().cancel(pendingIntent)
 
     }catch (e:Exception){
+      if(e.toString() !== "Pending Intent not Found"){
+        val sentryInstance=Sentry.getSentry()
+        if(sentryInstance!==null){
+          Sentry.logDebug(sentryInstance,"Error stopAlarmInsideService",e)
+        }
+      }
      println("StopAlarmInsideServiceError ${e}")
     }
   }
@@ -263,6 +357,10 @@ class StateSingleton private constructor(context:Context) {
       val stopIntent= Intent(Names().ACTION_STOP_SERVICE)
       this.context.get()!!.sendBroadcast(stopIntent)
     } catch (e: Exception) {
+      val sentryInstance=Sentry.getSentry()
+      if(sentryInstance!==null){
+        Sentry.logDebug(sentryInstance,"Error sendStopBroadcast",e)
+      }
       Log.d("Error Send Stop Broadcast",e.toString())
     }
   }
@@ -278,7 +376,10 @@ class StateSingleton private constructor(context:Context) {
       }
 
     } catch (e:Exception) {
-      println("setIsbackgroundServicerunning exception")
+      val sentryInstance=Sentry.getSentry()
+      if(sentryInstance!==null){
+        Sentry.logDebug(sentryInstance,"Error setIsBackgroundServiceRunning",e)
+      }
       promise?.reject("Error inSetIsBackgroundServiceRunning",e.toString())
     }finally {
         isBackgroundServiceRunningSemaphore.release()
@@ -295,6 +396,10 @@ class StateSingleton private constructor(context:Context) {
         println("This is value of isBackgroundServiceRunning ${result[keyIsBackgroundServiceRunning]}")
         return  result[keyIsBackgroundServiceRunning] ?: false
       } catch (e: Exception) {
+      val sentryInstance=Sentry.getSentry()
+      if(sentryInstance!==null){
+        Sentry.logDebug(sentryInstance,"Error isBackgroundServiceRunning",e)
+      }
         promise?.reject("Error from isBackgroundServiceRunning",e)
         return false
     } finally {
@@ -307,6 +412,10 @@ class StateSingleton private constructor(context:Context) {
         startSemaphore.acquire()
         promise?.resolve(null)
       }catch (e:InterruptedException){
+        val sentryInstance=Sentry.getSentry()
+        if(sentryInstance!==null){
+          Sentry.logDebug(sentryInstance,"Error acquireStartSemaphore",e)
+        }
         promise?.reject(e)
       }
 
@@ -322,6 +431,10 @@ class StateSingleton private constructor(context:Context) {
      promise?.resolve("Not Safe to release")
 
    }catch(e:Exception){
+     val sentryInstance=Sentry.getSentry()
+     if(sentryInstance!==null){
+       Sentry.logDebug(sentryInstance,"Error releaseStartSemaphore",e)
+     }
      promise?.reject(e)
    }
   }
@@ -336,6 +449,10 @@ class StateSingleton private constructor(context:Context) {
       }
       promise.resolve(null)
     }catch (e:Exception){
+      val sentryInstance=Sentry.getSentry()
+      if(sentryInstance!==null){
+        Sentry.logDebug(sentryInstance,"Error interruptAllQueuedStartSemaphore",e)
+      }
       promise.reject(e)
     }
 
