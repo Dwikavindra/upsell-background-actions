@@ -391,9 +391,8 @@ class StateSingleton private constructor(context:Context) {
         isBackgroundServiceRunningSemaphore.acquire()
         println("Lock acquired isBackgroundServiceRunningSemaphore")
         val result:Preferences=  context.get()!!.dataStore.data.first()
-      println("Value of preference ")
+        println("Value of isBackgroundServiceRunning ${result[keyIsBackgroundServiceRunning]}")
         promise?.resolve(result[keyIsBackgroundServiceRunning] ?: false)
-        println("This is value of isBackgroundServiceRunning ${result[keyIsBackgroundServiceRunning]}")
         return  result[keyIsBackgroundServiceRunning] ?: false
       } catch (e: Exception) {
       val sentryInstance=Sentry.getSentry()
