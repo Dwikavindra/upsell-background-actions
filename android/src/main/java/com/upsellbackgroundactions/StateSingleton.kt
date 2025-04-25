@@ -1,5 +1,4 @@
 package com.upsellbackgroundactions
-
 import android.annotation.SuppressLint
 import android.app.ActivityManager
 import android.app.AlarmManager
@@ -8,32 +7,21 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import android.os.Bundle
 import android.util.Log
-import androidx.annotation.ColorInt
-import androidx.annotation.IdRes
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Callback
 import com.facebook.react.bridge.JavaOnlyMap
 import com.facebook.react.bridge.Promise
-import com.facebook.react.bridge.ReadableMap
-import com.facebook.react.bridge.WritableMap
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import kotlinx.coroutines.Dispatchers
-
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
-
-
 import java.lang.ref.WeakReference
 import java.util.concurrent.Semaphore
 
@@ -41,7 +29,7 @@ import java.util.concurrent.Semaphore
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 class StateSingleton private constructor(context:Context) {
   private var functionCallBack:Callback?=null
-  public var alarmTime:Double?=null
+  private var alarmTime:Double?=null
   private val context: WeakReference<Context> = WeakReference(context)
   private var currentServiceIntent:Intent?=null
   private var bgOptions:BackgroundTaskOptions?=null
@@ -72,9 +60,6 @@ class StateSingleton private constructor(context:Context) {
   fun setCallBack(callBack:Callback){
     this.functionCallBack=callBack
   }
-  fun getCallBack():Callback?{
-    return this.functionCallBack
-  }
 
   suspend fun getisItSafeToStopAlarm():Boolean {
     try {
@@ -93,9 +78,6 @@ class StateSingleton private constructor(context:Context) {
     }
   }
 
-  suspend fun getContext():Context{
-    return this.context.get()!!
-  }
 
   fun acquireRestartAlarmSemaphore():Boolean{
       return restartAlarmContextSemaphore.tryAcquire()
@@ -257,7 +239,7 @@ class StateSingleton private constructor(context:Context) {
       this.setAlarmTime(triggerTime)
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
         println("inside start function Build SDK is over Lollipop")
-          println("inside start function alarm manager is not null")
+        println("inside start function alarm manager is not null")
           val alarmClockInfo =
             AlarmClockInfo(System.currentTimeMillis() + convertedTriggerTime, null)
           val startAlarmIntent = Intent(
