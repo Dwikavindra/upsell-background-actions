@@ -24,10 +24,9 @@ import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.ReadableMap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.runBlocking
+import java.time.LocalDateTime
 
 
 class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
@@ -125,14 +124,13 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
     }
   }
 
+
   @RequiresApi(Build.VERSION_CODES.O)
   @Suppress("unused")
   @ReactMethod
   fun start(options: ReadableMap, triggerTime: Double, promise: Promise) {
-
     Thread {
       try {
-        //todo: Save the readable map
          val bgOptions = BackgroundTaskOptions(this@UpsellBackgroundActionsModule.reactApplicationContext, options)
         currentServiceIntent = Intent(this@UpsellBackgroundActionsModule.reactApplicationContext, RNBackgroundActionsTask::class.java)
         println("Passed currentServiceIntent")
@@ -143,10 +141,10 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
         state.setBGOptions(bgOptions)
         currentServiceIntent!!.putExtras(bgOptions.extras!!)
         state.setAlarmTime(triggerTime)
-        state.setIsAlarmStoppedByUser(false)
+          state.setIsAllTaskStoppedByUser(false)
         state.setIsBackgroundServiceRunning(true, null)
                 println("Passed setIsbackgroundServiceRUNNING")
-
+        state.setIsAllTaskStoppedByUser(false)
         }
         reactApplicationContext.startForegroundService(currentServiceIntent)
       } catch (e: java.lang.Exception) {
@@ -207,36 +205,23 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
   @Suppress("unused")
   @ReactMethod
   fun stop(promise: Promise) {
+    val singleton=StateSingleton.getInstance(reactApplicationContext)
     try {
-      if (currentServiceIntent != null) reactApplicationContext.stopService(currentServiceIntent)
-      if (this.alarmPendingIntent != null && this.alarmManager != null) {
-        this.alarmManager!!.cancel(this.alarmPendingIntent!!)
-        promise.resolve(null)
-      } else {
-        throw java.lang.Exception(
-          ("""Alarm Manager not canceled Status of AlarmManager:${this.alarmManager}""").toString() + "Status of Pending Intent" + this.alarmPendingIntent
-        )
+      singleton.stopAlarmRecovery()
+      singleton.stopAlarmShutdown()
+      singleton.stopAlarmRestart()
+      singleton.acquireRestartAlarmSemaphore()
+      singleton.sendStopBroadCastRestartService()
+      singleton.sendStopBroadCastAutoPrintService()
+      runBlocking {
+        singleton.setIsAllTaskStoppedByUser(true)
+        singleton.setIsBackgroundServiceRunning(false,promise)
       }
     } catch (e: java.lang.Exception) {
       promise.reject(e)
+    }finally {
+        singleton.releaseRestartAlarmSemaphore()
     }
-  }
-
-  @Suppress("unused")
-  @ReactMethod
-  fun getIsItSafeToStopAlarm(promise: Promise) {
-    CoroutineScope(Dispatchers.IO).launch {
-      try {
-        val value = async {
-          StateSingleton.getInstance(this@UpsellBackgroundActionsModule.reactApplicationContext.applicationContext)
-            .getisItSafeToStopAlarm()
-        }
-        promise.resolve(value.await())
-      } catch (e: java.lang.Exception) {
-        promise.reject(e)
-      }
-    }
-
   }
 
   @Suppress("unused")
@@ -267,13 +252,6 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
     }
   }
 
-  @ReactMethod
-  fun setIsAlarmStoppedByUser(value:Boolean, promise:Promise){
-    CoroutineScope(Dispatchers.IO).launch {
-      StateSingleton.getInstance(reactApplicationContext.applicationContext).setIsAlarmStoppedByUser(value)
-      promise.resolve(null)
-    }
-  }
 
   @Suppress("unused")
   @ReactMethod
@@ -315,7 +293,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
             reactApplicationContext,
             BackgroundAlarmReceiver::class.java
           )
-          startAlarmIntent.setAction(Names().ACTION_START_ALARM_MANAGER)
+          startAlarmIntent.setAction(Names().ACTION_START_RESTART)
           val pendingIntent = PendingIntent.getBroadcast(
             reactApplicationContext,
             0,
@@ -395,23 +373,13 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
           .releaseAddPrinterSemaphore(promise)
       }.start()
     }
-
-    @Suppress("unused")
-    @ReactMethod
-    fun stopAlarm(promise: Promise) {
-      CoroutineScope(Dispatchers.IO).launch {
-        StateSingleton.getInstance(this@UpsellBackgroundActionsModule.reactApplicationContext.applicationContext)
-          .stopAlarm(this@UpsellBackgroundActionsModule.reactApplicationContext, promise)
-      }
-
-    }
    @ReactMethod
    fun sendStartServiceIntentInCatch(promise:Promise){
      val startAlarmIntent = Intent(
        reactApplicationContext,
        BackgroundAlarmReceiver::class.java
      )
-     startAlarmIntent.setAction(Names().ACTION_START_ALARM_MANAGER)
+     startAlarmIntent.setAction(Names().ACTION_START_RESTART)
      reactApplicationContext.sendBroadcast(startAlarmIntent);
      promise.resolve(null)
    }
@@ -440,5 +408,22 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
     }catch(e:Exception){
       promise.reject(e)
     }
+  }
+
+  @ReactMethod
+  fun setOpenTimeAndCloseTime(openTime:String,closeTime:String){
+    try{
+      val currentTime= LocalDateTime.now()
+      val singleton=StateSingleton.getInstance(reactApplicationContext)
+      singleton.setOpenTme(openTime)
+      singleton.setCloseTime(closeTime)
+      singleton.setShutdown(currentTime,closeTime)
+    }catch(e:Exception){
+      val sentry=Sentry.getSentry()
+      if(sentry!==null){
+        Sentry.logDebug(sentry,"Error from setOpenTimeAndCloseTime",e)
+      }
+    }
+
   }
 }

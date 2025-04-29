@@ -10,7 +10,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
-import android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED
 import android.net.Uri
 import android.net.wifi.WifiManager
 import android.os.Build
@@ -30,23 +29,12 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
   private var wifiLock: WifiManager.WifiLock? = null
   private val stopServiceReceiver: BroadcastReceiver = object : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-      println("This is intent action" + intent.action)
-
       if (Names().ACTION_STOP_SERVICE == intent.action) {
         stopForegroundService() // Stop the foreground service when the broadcast is received
       }
     }
   }
 
-  override fun getTaskConfig(intent: Intent): HeadlessJsTaskConfig {
-    val extras = intent.extras
-    return HeadlessJsTaskConfig(
-        extras?.getString("taskName") ?:"AutoPrint",// it must exist
-        Arguments.fromBundle(extras),
-        0,
-        true
-      )
-  }
 
 
   @RequiresApi(Build.VERSION_CODES.TIRAMISU)
@@ -54,76 +42,15 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
     try {
       val singleton = StateSingleton.getInstance(this)
-
-//      val testIntent=null// to check if null on live make intent to testIntent, not tested with testing packages to test behaviour of HeadlessJSService can't replicate that
-      // on null it should only take the js config the intent should not be used further than that according to the source code
-      // confirmed working
-      if (intent == null) {
-        println("is null")
-        val currentServiceIntent = singleton.getCurrentServiceIntent()// change to null to test for null case
-        if (currentServiceIntent != null) {/// for testing on live to null change the currentServiceIntent to null, why not on a test file? can't really mimic a Service
-          super.onStartCommand(currentServiceIntent, flags, startId)
-        } else {
-          val serviceIntent = Intent(this, RNBackgroundActionsTask::class.java)
-          serviceIntent.putExtras(singleton.getBGOptions()!!.extras!!) // recreate Intent
-          super.onStartCommand(serviceIntent, flags, startId)
-          println("Passed Else case on null ")
-        }
-      } else {
-        super.onStartCommand(
-          intent,
-          flags,
-          startId
-        )// need to call this cause this is headless js react native to register the js commands
-      }
-      Thread {
-        try {
-          val bgOptions = BackgroundTaskOptions(singleton.getBGOptions()!!.extras!!)
-          createNotificationChannel(
-            bgOptions.taskTitle,
-            bgOptions.taskDesc
-          )
-          val notification = buildNotification(this, bgOptions)
-          runBlocking {
-            wakeLock =
-              (getSystemService(Context.POWER_SERVICE) as PowerManager).run {
-                newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "RNBackgroundActionsTask::lock").apply {
-                  acquire(
-                    StateSingleton.getInstance(this@RNBackgroundActionsTask).getAlarmTime()
-                      .toLong() + 240000
-                  )
-                }
-              }
-            wifiLock = (getSystemService(WIFI_SERVICE) as WifiManager)
-              .createWifiLock(WifiManager.WIFI_MODE_FULL, "mylock")
-            wifiLock!!.acquire()
-          }
-
-
-          val state = StateSingleton.getInstance(this)
-
-
-          ServiceCompat.startForeground(
-            this, Names().SERVICE_NOTIFICATION_ID, notification,
-            FOREGROUND_SERVICE_TYPE_DATA_SYNC
-          )
-
-
-          runBlocking {
-            state.stopAlarmInsideService()//ensure only one alarm instance
-            println("This is state.getAlarmTime ${state.getAlarmTime()}")
-            state.startAlarm(state.getAlarmTime())
-          }
-          val filter = IntentFilter(Names().ACTION_STOP_SERVICE)
-          registerReceiver(stopServiceReceiver, filter, RECEIVER_EXPORTED)
-        } catch (e: Exception) {
-          val sentryInstance = Sentry.getSentry()
-          if (sentryInstance !== null) {
-            Sentry.logDebug(sentryInstance, "onStartCommand RNBackgroundActionTask Error in Thread",e)
-          }
-        }
-
-      }.start()
+      val bgOptions= singleton.getBGOptions()!!.extras!!
+      val config= HeadlessJsTaskConfig(
+        bgOptions.getString("taskName") ?:"AutoPrint",// it must exist
+        Arguments.fromBundle(bgOptions),
+        0,
+        true
+      )
+      startTask(config)
+      threadPromoteToForegroundSetAlarm(singleton)
       return START_STICKY // Keep the service running until explicitly stopped
     }catch (e:Exception){
       val sentryInstance = Sentry.getSentry()
@@ -135,6 +62,61 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
     }
 
 
+  }
+
+  private fun threadPromoteToForegroundSetAlarm(singleton: StateSingleton) {
+    Thread {
+      try {
+        val bgOptions = BackgroundTaskOptions(singleton.getBGOptions()!!.extras!!)
+        createNotificationChannel(
+          bgOptions.taskTitle,
+          bgOptions.taskDesc
+        )
+        val notification = buildNotification(this, bgOptions)
+        runBlocking {
+          wakeLock =
+            (getSystemService(POWER_SERVICE) as PowerManager).run {
+              newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "RNBackgroundActionsTask::lock").apply {
+                acquire(
+                  StateSingleton.getInstance(this@RNBackgroundActionsTask).getAlarmTime()
+                    .toLong() + 240000
+                )
+              }
+            }
+          wifiLock = (getSystemService(WIFI_SERVICE) as WifiManager)
+            .createWifiLock(WifiManager.WIFI_MODE_FULL, "mylock")
+          wifiLock!!.acquire()
+        }
+
+
+        val state = StateSingleton.getInstance(this)
+
+
+        ServiceCompat.startForeground(
+          this, Names().SERVICE_NOTIFICATION_ID, notification,
+          FOREGROUND_SERVICE_TYPE_DATA_SYNC
+        )
+
+
+        runBlocking {
+          state.stopAlarmRestart()//ensure only one alarm instance
+          println("This is state.getAlarmTime ${state.getAlarmTime()}")
+          state.startRestartAlarm(state.getAlarmTime())
+        }
+        val filter = IntentFilter(Names().ACTION_STOP_SERVICE)
+        registerReceiver(stopServiceReceiver, filter, RECEIVER_EXPORTED)
+      } catch (e: Exception) {
+        val sentryInstance = Sentry.getSentry()
+        if (sentryInstance !== null) {
+          Sentry.logDebug(
+            sentryInstance,
+            "onStartCommand RNBackgroundActionTask Error in Thread",
+            e
+          )
+        }
+      }
+
+    }.start()
   }
 
   override fun onDestroy() {
@@ -161,7 +143,6 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
   }
 
   private fun createNotificationChannel(taskTitle: String, taskDesc: String) {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
       val importance = NotificationManager.IMPORTANCE_LOW
       val channel = NotificationChannel(Names().CHANNEL_ID, taskTitle, importance)
       channel.description = taskDesc
@@ -169,7 +150,6 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
         NotificationManager::class.java
       )
       notificationManager.createNotificationChannel(channel)
-    }
   }
 
   companion object {
@@ -192,14 +172,14 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
       val contentIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         PendingIntent.getActivity(
           context,
-          0,
+          Names().PENDING_INTENT_AUTOPRINT_NOTIFICATION_REQUEST_CODE,
           notificationIntent,
           PendingIntent.FLAG_IMMUTABLE
         )
       } else {
         PendingIntent.getActivity(
           context,
-          0,
+          Names().PENDING_INTENT_AUTOPRINT_NOTIFICATION_REQUEST_CODE,
           notificationIntent,
           PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )

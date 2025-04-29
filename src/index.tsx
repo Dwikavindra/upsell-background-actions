@@ -109,9 +109,6 @@ class UpsellBackgroundService {
   async listRunningServices() {
     return await UpsellBackgroundActions.listRunningServices();
   }
-  async stopAlarm() {
-    return await UpsellBackgroundActions.stopAlarm();
-  }
   async setIsBackgroundServiceRunning(value: boolean) {
     console.log('Set Is backgroundServicerunningCalled');
     return await UpsellBackgroundActions.setIsBackgroundServiceRunning(value);
@@ -140,12 +137,6 @@ class UpsellBackgroundService {
   async requestActionIgnoreBatteryOptimizationSettings() {
     return await UpsellBackgroundActions.requestActionIgnoreBatteryOptimizationSettings();
   }
-  async isItSafeToStopAlarm() {
-    return await UpsellBackgroundActions.getIsItSafeToStopAlarm();
-  }
-  async setIsAlarmStoppedByUser(value: boolean) {
-    return await UpsellBackgroundActions.setIsAlarmStoppedByUser(value);
-  }
   async interruptQueuedThread() {
     return await UpsellBackgroundActions.interruptQueuedThread();
   }
@@ -157,6 +148,9 @@ class UpsellBackgroundService {
   }
   async sendMessage() {
     return await UpsellBackgroundActions.sendMessage();
+  }
+  async stop() {
+    await UpsellBackgroundActions.stop();
   }
 }
 const BackgroundService = new UpsellBackgroundService();

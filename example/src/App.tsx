@@ -25,24 +25,6 @@ function App() {
   // as long as it doesn't touch UI. Once your task completes (i.e. the promise is resolved),
   // React Native will go into "paused" mode (unless there are other tasks running,
   // or there is a foreground app).
-  const STOP_ALARM_MAX_RETRIES = 6;
-  const stopAlarm = async () => {
-    let i = 0;
-    while (i < STOP_ALARM_MAX_RETRIES) {
-      try {
-        await BackgroundService.stopAlarm();
-      } catch (error) {
-        const receivedError: Error = error as Error;
-        if (receivedError.message.includes('Pending Intent not Found')) {
-          console.log('This is error Pending Intent', receivedError);
-        }
-        if (receivedError.message.includes('Not Safe to stop Alarm')) {
-          console.log('This is error', receivedError);
-        }
-      }
-      i++;
-    }
-  };
   const veryIntensiveTask = async (taskDataArguments: any) => {
     // Example of an infinite loop task
     let isError = false;
@@ -127,12 +109,7 @@ function App() {
           console.log(await BackgroundService.listRunningServices());
         }}
       />
-      <Button
-        title="stopAlarm"
-        onPress={async () => {
-          await BackgroundService.stopAlarm();
-        }}
-      />
+
       <Button
         title="Start Task "
         onPress={async () => {
@@ -208,23 +185,7 @@ function App() {
         onPress={async () => {
           try {
             console.log('Here in stop task');
-            try {
-              await BackgroundService.stopAlarm();
-            } catch (error) {
-              console.log('error from stopAlarm', error);
-            }
-
-            console.log('Passed Stopped Alarm');
-
-            await BackgroundService.setIsBackgroundServiceRunning(false);
-            console.log('Passed setIsBackgroundServiceRunnign');
-            await BackgroundService.sendStopBroadcast();
-            console.log('sendStopBroadcast');
-            await BackgroundService.unlock();
-            console.log('Passed unlock here ');
-            await BackgroundService.interruptQueuedThread();
-            console.log('Pass intteruptThread');
-            console.log('Passed sendStopBroadcast');
+            await BackgroundService.stop();
           } catch (error) {
             console.log('Error from stop task', error);
           }
@@ -251,7 +212,7 @@ function App() {
       <Button
         title="Check Permission"
         onPress={async () => {
-          const permissionsGranted = await PermissionsAndroid.requestMultiple([
+          await PermissionsAndroid.requestMultiple([
             'android.permission.ACCESS_FINE_LOCATION',
             'android.permission.ACCESS_COARSE_LOCATION',
             'android.permission.POST_NOTIFICATIONS',

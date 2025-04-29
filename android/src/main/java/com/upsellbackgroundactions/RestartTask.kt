@@ -6,10 +6,10 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
-import android.net.Uri
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
@@ -17,14 +17,18 @@ import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import kotlinx.coroutines.runBlocking
-import kotlin.math.floor
 
 class RestartTask: Service() {
+  private val stopServiceReceiver: BroadcastReceiver = object : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+      if (Names().ACTION_STOP_RESTART_SERVICE == intent.action) {
+        stopForegroundService() // Stop the foreground service when the broadcast is received
+      }
+    }
+  }
 
-/*
-Restart would not be accurate with an addition 30 seconds to wait for the service to turn off with sendStopBroadcast
-* */
   private fun createNotificationChannel(taskTitle: String, taskDesc: String) {
+
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
       val importance = NotificationManager.IMPORTANCE_LOW
       val channel = NotificationChannel(Names().CHANNEL_RESTART, taskTitle, importance)
@@ -37,7 +41,6 @@ Restart would not be accurate with an addition 30 seconds to wait for the servic
   }
   fun setupNotification():Notification{
     createNotificationChannel("Restart Autoprint","autoprint restart")
-    val singleton = StateSingleton.getInstance(this)
     return buildNotification(this)
   }
 
@@ -60,18 +63,19 @@ Restart would not be accurate with an addition 30 seconds to wait for the servic
         ServiceCompat.startForeground(this,Names().SERVICE_NOTIFICATION_ID, notification,
           FOREGROUND_SERVICE_TYPE_DATA_SYNC
         )
-        if (!singleton.acquireRestartAlarmSemaphore()) {
-          println("Didn't pass acquireRestartAlarmSemaphore")
-          return@Thread
+        singleton.acquireRestartAlarmSemaphore()
+        var stopThread=false
+        runBlocking {
+          if(singleton.getIsAllTaskStoppedByUser()){
+            stopThread=true
+          }
         }
-        println("Successfully acquired restartAlarmSemaphore")
-        if (isAlarmStoppedByUser()) {
+        if(stopThread){
           return@Thread
         }
 
         performRestartSequence(singleton)
       } catch (e: Exception) {
-        Log.e("acquireRestartSemaphore",e.toString())
         if(sentryInstance!==null){
           Sentry.logDebug(sentryInstance,"From Restart Task acquireRestartAlarmSemaphore",e)
         }
@@ -113,9 +117,7 @@ Restart would not be accurate with an addition 30 seconds to wait for the servic
       Thread.sleep(5000)
       this.startForegroundService(currentServiceIntent)
       Log.d("BackgroundAlarmReceiver", "Passed startService")
-      runBlocking {
-        StateSingleton.getInstance(this@RestartTask).setisItSafeToStopAlarm(true)
-      }
+
     } catch (e: Exception) {
       val sentryInstance=Sentry.getSentry()
       if(sentryInstance!==null){
@@ -139,24 +141,9 @@ Restart would not be accurate with an addition 30 seconds to wait for the servic
 
   private fun stopCurrentService() {
     runBlocking {
-      StateSingleton.getInstance(this@RestartTask).setisItSafeToStopAlarm(false)
       StateSingleton.getInstance(this@RestartTask).setIsBackgroundServiceRunning(false, null)
-      StateSingleton.getInstance(this@RestartTask).sendStopBroadcast()
+      StateSingleton.getInstance(this@RestartTask).sendStopBroadCastAutoPrintService()
     }
-  }
-  private fun isAlarmStoppedByUser(): Boolean {
-    var stoppedByUser: Boolean? = null
-    runBlocking {
-      stoppedByUser = StateSingleton.getInstance(this@RestartTask).getIsAlarmStoppedByUser()
-    }
-
-    if (stoppedByUser == true) {
-      runBlocking {
-        StateSingleton.getInstance(this@RestartTask).setIsBackgroundServiceRunning(false, null)
-      }
-      return true
-    }
-    return false
   }
   override fun onBind(intent: Intent?): IBinder? {
     return null
@@ -168,14 +155,14 @@ Restart would not be accurate with an addition 30 seconds to wait for the servic
     val contentIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
       PendingIntent.getActivity(
         context,
-        1,
+        Names().PENDING_INTENT_RESTART_NOTIFICATION_REQUEST_CODE,
         notificationIntent,
         PendingIntent.FLAG_IMMUTABLE
       )
     } else {
       PendingIntent.getActivity(
         context,
-        1,
+        Names().PENDING_INTENT_RESTART_NOTIFICATION_REQUEST_CODE,
         notificationIntent,
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
       )
