@@ -115,7 +115,23 @@ function App() {
         onPress={async () => {
           try {
             BackgroundService.start(veryIntensiveTask, options, 30000);
+            const now = new Date();
 
+            // Format current time as "HH:mm:ss"
+            const currentTime = now.toTimeString().split(' ')[0]!!;
+
+            // Calculate closeTime (current time + 5 minutes)
+            const closeTimeDate = new Date(now.getTime() + 5 * 60000);
+            const closeTime = closeTimeDate.toTimeString().split(' ')[0]!!;
+
+            // Calculate openTime (closeTime + 5 minutes)
+            const openTimeDate = new Date(closeTimeDate.getTime() + 5 * 60000);
+            const openTime = openTimeDate.toTimeString().split(' ')[0]!!;
+            BackgroundService.setOpenTimeAndCloseTime(
+              currentTime,
+              openTime,
+              closeTime
+            );
             console.log('Here After');
           } catch (error) {
             console.log('This is error', error);

@@ -152,6 +152,18 @@ class UpsellBackgroundService {
   async stop() {
     await UpsellBackgroundActions.stop();
   }
+  async setOpenTimeAndCloseTime(
+    currentTime: String,
+    openTime: String,
+    closeTime: String
+  ) {
+    // in "HH:mm:ss"
+    await UpsellBackgroundActions.setOpenTimeAndCloseTime(
+      currentTime,
+      openTime,
+      closeTime
+    );
+  }
 }
 const BackgroundService = new UpsellBackgroundService();
 export default BackgroundService;

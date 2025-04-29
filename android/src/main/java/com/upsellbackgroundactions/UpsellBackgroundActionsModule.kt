@@ -26,7 +26,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import java.time.LocalDateTime
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 
 class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
@@ -411,13 +412,15 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
   }
 
   @ReactMethod
-  fun setOpenTimeAndCloseTime(openTime:String,closeTime:String){
+  fun setOpenTimeAndCloseTime(currentTime:String,openTime:String,closeTime:String){
     try{
-      val currentTime= LocalDateTime.now()
       val singleton=StateSingleton.getInstance(reactApplicationContext)
+      val formatter= DateTimeFormatter.ofPattern("dd MM yyyy")
+      val currentDateFormatted= LocalDate.now().format(formatter)
+      val currentDateSplitDateTime= SplitDateTime(currentDateFormatted,currentTime)
       singleton.setOpenTme(openTime)
       singleton.setCloseTime(closeTime)
-      singleton.setShutdown(currentTime,closeTime)
+      singleton.setShutdown(currentDateSplitDateTime.toLocalDateTime(),closeTime)
     }catch(e:Exception){
       val sentry=Sentry.getSentry()
       if(sentry!==null){
