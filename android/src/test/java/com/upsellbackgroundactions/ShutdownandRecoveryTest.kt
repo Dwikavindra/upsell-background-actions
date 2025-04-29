@@ -68,6 +68,14 @@ class ShutdownandRecoveryTest {
     assertEquals(result,openingTimeTomorrow)
   }
   @Test
+  fun `chooseDateSchedule check 1 second difference`(){
+    val currentTime= SplitDateTime("31 03 2025","01:01:00").toLocalDateTime()
+    val openingTime= SplitDateTime("31 03 2025","01:01:01").toLocalDateTime()
+    val openingTimeTomorrow= SplitDateTime("01 04 2025","00:30:00").toLocalDateTime()
+    val result = ShutdownandRecovery.chooseDateSchedule(currentTime,openingTime,openingTimeTomorrow)
+    assertEquals(result,openingTime)
+  }
+  @Test
   fun `chooseDateSchedule on positive`(){
     val currentTime= SplitDateTime("31 03 2025","01:00:00").toLocalDateTime()
     val openingTime= SplitDateTime("31 03 2025","07:00:00").toLocalDateTime()

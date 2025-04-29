@@ -46,6 +46,7 @@ class StateSingleton private constructor(context:Context) {
   private val alarmStopByUserSemaphore= Semaphore(1)
   private val alarmTimeSemaphore= Semaphore(1)
   private val startSemaphore=Semaphore(1)
+  private val keyIsShutdown= booleanPreferencesKey("keyIsShutdown")
   private val addPrinterSemaphore=Semaphore(1)
   private val isBackgroundServiceRunningSemaphore= Semaphore(1)
   private val restartAlarmContextSemaphore= Semaphore(1)
@@ -217,7 +218,6 @@ class StateSingleton private constructor(context:Context) {
     runBlocking {
       val dataStore:Preferences=  context.get()!!.dataStore.data.first()
       val openTimeDataStore=dataStore[keyOpenTime]
-      requireNotNull(openTime)
       openTime=openTimeDataStore
     }
     requireNotNull(openTime)
@@ -228,7 +228,6 @@ class StateSingleton private constructor(context:Context) {
     runBlocking {
       val dataStore:Preferences=  context.get()!!.dataStore.data.first()
       val openTimeDataStore=dataStore[keyCloseTime]
-      requireNotNull(closeTime)
       closeTime=openTimeDataStore
     }
     requireNotNull(closeTime)
@@ -326,7 +325,8 @@ class StateSingleton private constructor(context:Context) {
       }
       getAlarmManager().cancel(pendingIntent)
     }catch (e:Exception){
-      if(e.toString()!=="Pending Intent not Found"){
+      if(e.message !="Pending Intent not Found"){
+
         Log.e("Error in StopAlarmRecovery",e.toString())
         val sentry= Sentry.getSentry()
         if(sentry !=null){
@@ -352,7 +352,7 @@ class StateSingleton private constructor(context:Context) {
       }
       getAlarmManager().cancel(pendingIntent)
     }catch (e:Exception){
-      if(e.toString()!=="Pending Intent not Found"){
+      if(e.message!="Pending Intent not Found"){
         Log.e("Error in StopAlarmRecovery",e.toString())
         val sentry= Sentry.getSentry()
         if(sentry !=null){
@@ -361,10 +361,27 @@ class StateSingleton private constructor(context:Context) {
       }
     }
   }
-
+  fun setIsShutdown(value:Boolean){
+    runBlocking {
+      context.get()!!.dataStore.edit { settings ->
+        settings[keyIsShutdown]=value
+        println("Value of setting IsBackgroundServiceRunning ${settings[keyIsShutdown]}")
+    }
+    }
+  }
+  fun getIsShutdown():Boolean?{
+    var isShutdown:Boolean?=null
+    runBlocking {
+        val result:Preferences= context.get()!!.dataStore.data.first()
+        isShutdown=result[keyIsShutdown]
+      }
+    requireNotNull(isShutdown)
+    return isShutdown
+  }
   fun setShutdown(currentDateTime:LocalDateTime,closeTime:String){
     try{
       val formatter= DateTimeFormatter.ofPattern("dd MM yyyy")
+      println("currentDateTime")
       val closeTimeToday= SplitDateTime(currentDateTime.format(formatter),closeTime) .toLocalDateTime()
       val closeTimeNextDay= SplitDateTime(currentDateTime.plusDays(1).format(formatter),closeTime).toLocalDateTime()
       val alarmDate=ShutdownandRecovery.chooseDateSchedule(currentDateTime,closeTimeToday,closeTimeNextDay)
@@ -379,10 +396,12 @@ class StateSingleton private constructor(context:Context) {
   }
   fun setRecovery(currentDateTime:LocalDateTime,openTime:String){
     try{
+      println("This is currentDateTime on Recovery ${currentDateTime}")
       val formatter= DateTimeFormatter.ofPattern("dd MM yyyy")
-      val closeTimeToday= SplitDateTime(currentDateTime.format(formatter),openTime) .toLocalDateTime()
-      val closeTimeNextDay= SplitDateTime(currentDateTime.plusDays(1).format(formatter),openTime).toLocalDateTime()
-      val alarmDate=ShutdownandRecovery.chooseDateSchedule(currentDateTime,closeTimeToday,closeTimeNextDay)
+      val openTimeToday= SplitDateTime(currentDateTime.format(formatter),openTime) .toLocalDateTime()
+      val openTimeNextDay= SplitDateTime(currentDateTime.plusDays(1).format(formatter),openTime).toLocalDateTime()
+      val alarmDate=ShutdownandRecovery.chooseDateSchedule(currentDateTime,openTimeToday,openTimeNextDay)
+      println("this is alarmDate in recovery $alarmDate")
       startAlarmRecoveryTime(currentDateTime,alarmDate)
     }catch(e:Exception){
       val sentry= Sentry.getSentry()
@@ -413,13 +432,12 @@ class StateSingleton private constructor(context:Context) {
         }
         getAlarmManager().cancel(pendingIntent)
     }catch (e:Exception){
-      if(e.toString() !== "Pending Intent not Found"){
+      if(e.message != "Pending Intent not Found"){
         val sentryInstance=Sentry.getSentry()
-        if(sentryInstance!==null){
+        if(sentryInstance!=null){
           Sentry.logDebug(sentryInstance,"Error stopAlarmInsideService",e)
         }
       }
-     println("StopAlarmInsideServiceError ${e}")
     }
   }
   fun sendStopBroadCastAutoPrintService() {
@@ -545,6 +563,7 @@ class StateSingleton private constructor(context:Context) {
 
 
   }
+
   fun  releaseAddPrinterSemaphore(promise:Promise?){
     addPrinterSemaphore.release()
     promise?.resolve(null)

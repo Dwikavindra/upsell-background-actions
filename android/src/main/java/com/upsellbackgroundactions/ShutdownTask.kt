@@ -8,14 +8,21 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
 import android.os.Build
 import android.os.IBinder
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.app.ServiceCompat
 import kotlinx.coroutines.runBlocking
 import java.time.LocalDateTime
 
 class ShutdownTask: Service() {
+  private fun stopForegroundService() {
+    stopForeground(STOP_FOREGROUND_REMOVE)
+    stopSelf()
+  }
   private fun createNotificationChannel(taskTitle: String, taskDesc: String) {
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -52,7 +59,6 @@ class ShutdownTask: Service() {
       .setContentText("Shutdown Autoprint")
       .setSmallIcon(android.R.drawable.ic_dialog_alert)
       .setContentIntent(contentIntent)
-      .setOngoing(true)
       .setPriority(NotificationCompat.PRIORITY_MIN)
 
 
@@ -60,8 +66,7 @@ class ShutdownTask: Service() {
   }
   @SuppressLint("MissingPermission")
   fun startShutDownTask(){
-    createNotificationChannel("Shutdown Autoprint at Closing Time","Shutdown Autoprint")
-    buildNotification(this)
+
     val notificationOneTime=NotificationOneTime(this)
     notificationOneTime.createNotificationChannel()
     NotificationManagerCompat.from(this).notify(Names().SHUTDOWN_ONE_TIME_NOTIFICATION_ID,notificationOneTime.buildNotificationShutdown())
@@ -70,6 +75,8 @@ class ShutdownTask: Service() {
       val singleton=StateSingleton.getInstance(this)
       try{
         singleton.acquireRestartAlarmSemaphore()
+        singleton.stopAlarmShutdown()
+        singleton.stopAlarmRecovery()
         var stopThread=false
         runBlocking {
           if(singleton.getIsAllTaskStoppedByUser()){
@@ -77,23 +84,34 @@ class ShutdownTask: Service() {
           }
         }
         if(stopThread){
+          this@ShutdownTask.stopForegroundService()
           return@Thread
         }
+        singleton.stopAlarmRestart()
+        val stopRestart = Intent(Names().ACTION_STOP_RESTART_SERVICE)
+        this.sendBroadcast(stopRestart)
+        singleton.setIsShutdown(true)
+        val stopAutoPrint = Intent(Names().ACTION_STOP_SERVICE)
+        this.sendBroadcast(stopAutoPrint)
         runBlocking {
           singleton.setIsBackgroundServiceRunning(false,null)
         }
-        val restart = Intent(Names().ACTION_STOP_RESTART_SERVICE)
-        this.sendBroadcast(restart)
-        Thread.sleep(30000)// wait 30 seconds to kill the restart service
+        println("Passed all stop")
         val currDateTime=LocalDateTime.now()
+        println("currDateTime")
         singleton.setShutdown(currDateTime,singleton.getCloseTime())
+        println("Passed setShutdown")
         singleton.setRecovery(currDateTime, singleton.getOpenTime())
+        println("PassedsetRecovery")
       }catch (e:Exception){
         val sentry=Sentry.getSentry()
         if(sentry!==null){
           Sentry.logDebug(sentry,"Error startShutdownTask",e)
         }
+        Log.e("startShutdownTask",e.toString())
       }finally {
+        this@ShutdownTask.stopForegroundService()
+        println("stopForegroundService called")
         singleton.releaseRestartAlarmSemaphore()
 
       }
@@ -102,6 +120,13 @@ class ShutdownTask: Service() {
   }
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
     //turn off the restart
+    println("StartedShutdownTask")
+    println("In ShutdownTask.")
+    createNotificationChannel("Shutdown Autoprint at Closing Time","Shutdown Autoprint")
+    val notification=buildNotification(this)
+    ServiceCompat.startForeground(this,Names().SERVICE_NOTIFICATION_ID, notification,
+      FOREGROUND_SERVICE_TYPE_DATA_SYNC
+    )
     startShutDownTask()
 
 

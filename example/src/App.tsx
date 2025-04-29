@@ -121,13 +121,16 @@ function App() {
             const currentTime = now.toTimeString().split(' ')[0]!!;
 
             // Calculate closeTime (current time + 5 minutes)
-            const closeTimeDate = new Date(now.getTime() + 5 * 60000);
+            const closeTimeDate = new Date(now.getTime() + 2 * 60000);
             const closeTime = closeTimeDate.toTimeString().split(' ')[0]!!;
 
             // Calculate openTime (closeTime + 5 minutes)
-            const openTimeDate = new Date(closeTimeDate.getTime() + 5 * 60000);
+            const openTimeDate = new Date(closeTimeDate.getTime() + 2 * 60000);
             const openTime = openTimeDate.toTimeString().split(' ')[0]!!;
-            BackgroundService.setOpenTimeAndCloseTime(
+            console.log('This is currentTime', currentTime);
+            console.log('This is openTime', openTime);
+            console.log('This is closeTime', closeTime);
+            await BackgroundService.setOpenTimeAndCloseTime(
               currentTime,
               openTime,
               closeTime
@@ -202,6 +205,7 @@ function App() {
           try {
             console.log('Here in stop task');
             await BackgroundService.stop();
+            console.log('Passed stop task');
           } catch (error) {
             console.log('Error from stop task', error);
           }

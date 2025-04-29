@@ -146,6 +146,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
         state.setIsBackgroundServiceRunning(true, null)
                 println("Passed setIsbackgroundServiceRUNNING")
         state.setIsAllTaskStoppedByUser(false)
+          state.setIsShutdown(false)
         }
         reactApplicationContext.startForegroundService(currentServiceIntent)
       } catch (e: java.lang.Exception) {
@@ -214,6 +215,7 @@ class UpsellBackgroundActionsModule(reactContext: ReactApplicationContext) :
       singleton.acquireRestartAlarmSemaphore()
       singleton.sendStopBroadCastRestartService()
       singleton.sendStopBroadCastAutoPrintService()
+      singleton.setIsShutdown(true)
       runBlocking {
         singleton.setIsAllTaskStoppedByUser(true)
         singleton.setIsBackgroundServiceRunning(false,promise)

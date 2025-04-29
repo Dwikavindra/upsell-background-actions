@@ -30,7 +30,7 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
   private val stopServiceReceiver: BroadcastReceiver = object : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
       if (Names().ACTION_STOP_SERVICE == intent.action) {
-        stopForegroundService() // Stop the foreground service when the broadcast is received
+          stopForegroundService() // Stop the foreground service when the broadcast is received
       }
     }
   }
@@ -42,15 +42,28 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
     try {
       val singleton = StateSingleton.getInstance(this)
-      val bgOptions= singleton.getBGOptions()!!.extras!!
+      val bgOptionsExtras= singleton.getBGOptions()!!.extras!!
       val config= HeadlessJsTaskConfig(
-        bgOptions.getString("taskName") ?:"AutoPrint",// it must exist
-        Arguments.fromBundle(bgOptions),
+        bgOptionsExtras.getString("taskName") ?:"AutoPrint",// it must exist
+        Arguments.fromBundle(bgOptionsExtras),
         0,
         true
       )
+      val bgOptions = BackgroundTaskOptions(singleton.getBGOptions()!!.extras!!)
+      createNotificationChannel(
+        bgOptions.taskTitle,
+        bgOptions.taskDesc
+      )
+
+      val notification = buildNotification(this, bgOptions)
+      ServiceCompat.startForeground(
+        this, Names().SERVICE_NOTIFICATION_ID, notification,
+        FOREGROUND_SERVICE_TYPE_DATA_SYNC
+      )
+      val filter = IntentFilter(Names().ACTION_STOP_SERVICE)
+      registerReceiver(stopServiceReceiver, filter, RECEIVER_EXPORTED)
       startTask(config)
-      threadPromoteToForegroundSetAlarm(singleton)
+      threadSetAlarm(singleton)
       return START_STICKY // Keep the service running until explicitly stopped
     }catch (e:Exception){
       val sentryInstance = Sentry.getSentry()
@@ -64,15 +77,16 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
 
   }
 
-  private fun threadPromoteToForegroundSetAlarm(singleton: StateSingleton) {
+  private fun threadSetAlarm(singleton: StateSingleton) {
+    if(singleton.getIsShutdown()!!){
+      runBlocking {
+        singleton.setIsBackgroundServiceRunning(false,null)
+      }
+      this.stopForegroundService()
+      return
+    }
     Thread {
       try {
-        val bgOptions = BackgroundTaskOptions(singleton.getBGOptions()!!.extras!!)
-        createNotificationChannel(
-          bgOptions.taskTitle,
-          bgOptions.taskDesc
-        )
-        val notification = buildNotification(this, bgOptions)
         runBlocking {
           wakeLock =
             (getSystemService(POWER_SERVICE) as PowerManager).run {
@@ -87,24 +101,14 @@ class RNBackgroundActionsTask : HeadlessJsTaskService() {
             .createWifiLock(WifiManager.WIFI_MODE_FULL, "mylock")
           wifiLock!!.acquire()
         }
-
-
         val state = StateSingleton.getInstance(this)
-
-
-        ServiceCompat.startForeground(
-          this, Names().SERVICE_NOTIFICATION_ID, notification,
-          FOREGROUND_SERVICE_TYPE_DATA_SYNC
-        )
-
 
         runBlocking {
           state.stopAlarmRestart()//ensure only one alarm instance
           println("This is state.getAlarmTime ${state.getAlarmTime()}")
           state.startRestartAlarm(state.getAlarmTime())
         }
-        val filter = IntentFilter(Names().ACTION_STOP_SERVICE)
-        registerReceiver(stopServiceReceiver, filter, RECEIVER_EXPORTED)
+
       } catch (e: Exception) {
         val sentryInstance = Sentry.getSentry()
         if (sentryInstance !== null) {

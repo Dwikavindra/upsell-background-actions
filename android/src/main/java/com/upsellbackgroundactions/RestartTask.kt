@@ -9,6 +9,7 @@ import android.app.Service
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
 import android.os.Build
 import android.os.IBinder
@@ -19,10 +20,12 @@ import androidx.core.app.ServiceCompat
 import kotlinx.coroutines.runBlocking
 
 class RestartTask: Service() {
+  private var isStartForegroundServiceCompatCalled= false
   private val stopServiceReceiver: BroadcastReceiver = object : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
       if (Names().ACTION_STOP_RESTART_SERVICE == intent.action) {
-        stopForegroundService() // Stop the foreground service when the broadcast is received
+          stopForegroundService() // Stop the foreground service when the broadcast is received
+
       }
     }
   }
@@ -46,10 +49,17 @@ class RestartTask: Service() {
 
   @SuppressLint("NewApi")
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    val notification = setupNotification()
+    ServiceCompat.startForeground(this,Names().SERVICE_NOTIFICATION_ID, notification,
+      FOREGROUND_SERVICE_TYPE_DATA_SYNC
+    )
+    val filter = IntentFilter(Names().ACTION_STOP_SERVICE)
+    registerReceiver(stopServiceReceiver, filter, RECEIVER_EXPORTED)
     executeRestartTask()
     return START_STICKY // Keep the service running until explicitly stopped
   }
   private fun stopForegroundService() {
+    unregisterReceiver(stopServiceReceiver) // Unregister the broadcast receiver
     stopForeground(STOP_FOREGROUND_REMOVE)
     stopSelf()
   }
@@ -58,11 +68,9 @@ class RestartTask: Service() {
     Thread {
       val sentryInstance=Sentry.getSentry()
       val singleton = StateSingleton.getInstance(this)
+
       try {
-        val notification = setupNotification()
-        ServiceCompat.startForeground(this,Names().SERVICE_NOTIFICATION_ID, notification,
-          FOREGROUND_SERVICE_TYPE_DATA_SYNC
-        )
+
         singleton.acquireRestartAlarmSemaphore()
         var stopThread=false
         runBlocking {
@@ -71,17 +79,17 @@ class RestartTask: Service() {
           }
         }
         if(stopThread){
+          this@RestartTask.stopForegroundService()
           return@Thread
         }
-
         performRestartSequence(singleton)
+        stopForegroundService()
       } catch (e: Exception) {
         if(sentryInstance!==null){
           Sentry.logDebug(sentryInstance,"From Restart Task acquireRestartAlarmSemaphore",e)
         }
       } finally {
         singleton.releaseRestartAlarmSemaphore()
-        stopForegroundService()
       }
     }.start()
   }
@@ -91,6 +99,13 @@ class RestartTask: Service() {
     try {
       stopCurrentService()
       waitForSystemShutdown()
+      if(singleton.getIsShutdown()!!){
+        runBlocking {
+          singleton.setIsBackgroundServiceRunning(false,null)
+        }
+        this.stopForegroundService()
+        return
+      }
       startNewService(singleton)
     } catch (e: Exception) {
       val sentryInstance=Sentry.getSentry()
@@ -105,8 +120,6 @@ class RestartTask: Service() {
   private fun startNewService(singleton: StateSingleton) {
     try {
       val currentServiceIntent = Intent(this, RNBackgroundActionsTask::class.java)
-
-
       Log.d("BackgroundAlarmReceiver", "Passed setIsBackgroundServiceRunning false")
       currentServiceIntent.putExtras(singleton.getBGOptions()!!.extras!!)
       singleton.acquireStartSemaphore(null)
@@ -134,6 +147,7 @@ class RestartTask: Service() {
     Log.d("BackgroundAlarmReceiver", "Before sleep 30 seconds")
 
     Thread.sleep(30000) // wait for 30 seconds to ensure that the system is off
+
     Log.d("BackgroundAlarmReceiver", "After sleep 30 seconds")
     val services=StateSingleton.getInstance(this@RestartTask).listRunningServices()
     Log.d("BackgroundAlarmListService", services)

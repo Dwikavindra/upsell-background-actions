@@ -42,14 +42,14 @@ class NotificationOneTime (val context: Context){
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
       )
     }
+
     val builder = NotificationCompat.Builder(context,Names().CHANNEL_ONE_TIME_ID)
       .setContentTitle("Shutdown AutoPrint at Closing Time")
       .setContentText("Time ${LocalDateTime.now()}")
       .setSmallIcon(android.R.drawable.ic_dialog_alert)
       .setContentIntent(contentIntent)
-      .setOngoing(true)
+      .setOngoing(false)
       .setPriority(NotificationCompat.PRIORITY_MIN)
-
 
     return builder.build()
   }
@@ -74,11 +74,11 @@ class NotificationOneTime (val context: Context){
       )
     }
     val builder = NotificationCompat.Builder(context,Names().CHANNEL_ONE_TIME_ID)
-      .setContentTitle("Recover AutoPrint at Closing Time")
+      .setContentTitle("Recover AutoPrint at Opening Time")
       .setContentText("Time ${LocalDateTime.now()}")
       .setSmallIcon(android.R.drawable.ic_dialog_alert)
       .setContentIntent(contentIntent)
-      .setOngoing(true)
+      .setOngoing(false)
       .setPriority(NotificationCompat.PRIORITY_MIN)
 
 
